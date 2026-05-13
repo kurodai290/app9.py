@@ -2,96 +2,106 @@ import streamlit as st
 import random
 
 # ページ設定
-st.set_page_config(page_title="剣道昇段審査 対策", layout="centered")
+st.set_page_config(page_title="剣道初段 学科ドリル（記述対応版）", layout="centered")
 
-# --- 問題データ ---
-ALL_QUESTIONS = [
-    {"id": "q1", "title": "問1. 剣道の理念", "text": "剣道の理念を記入してください", "type": "text", "correct": "人間形成の道"},
-    {"id": "q2", "title": "問2. 修錬の心構え", "text": "旺盛なる（　）を養い...", "type": "select", "options": ["", "気力", "活力", "体力"], "correct": "気力"},
-    {"id": "q3", "title": "問3. 中段の構え", "text": "中段は、いわゆる（　）の構えといわれ...", "type": "select", "options": ["", "常態", "基本", "攻防"], "correct": "常態"},
-    {"id": "q4", "title": "問4. 切り返し", "text": "切り返しにより（　）が軽快闊達になる", "type": "select", "options": ["", "足さばき", "腕さばき", "体さばき"], "correct": "足さばき"},
-    {"id": "q5", "title": "問5. 気剣体一致", "text": "「気」とは心の（　）をいう", "type": "select", "options": ["", "活動状態", "運用状態", "静止状態"], "correct": "活動状態"},
-    {"id": "q6", "title": "問6. 一足一刀の間合", "text": "一歩（　）相手に打突を与えられる間合", "type": "select", "options": ["", "踏み込めば", "退けば", "止まれば"], "correct": "踏み込めば"},
-    {"id": "q7", "title": "問7. 残心", "text": "相手を（　）した後でも油断しない心", "type": "select", "options": ["", "打突", "圧倒", "注視"], "correct": "打突"},
-    {"id": "q8", "title": "問8. 有効打突", "text": "充実した気勢、（　）をもって...", "type": "select", "options": ["", "適正な姿勢", "強い打撃", "素早い動き"], "correct": "適正な姿勢"},
-    {"id": "q9", "title": "問9. 竹刀の名称", "text": "竹刀の打突部を（　）という", "type": "select", "options": ["", "物打ち", "先革", "中結"], "correct": "物打ち"},
-    {"id": "q10", "title": "問10. 稽古上の注意", "text": "道場内では常に（　）を守ること", "type": "select", "options": ["", "礼儀", "時間", "規則"], "correct": "礼儀"},
-]
+# --- 初段：データベース（記述問題を強化） ---
+if "shodan_db" not in st.session_state:
+    st.session_state.shodan_db = [
+        {"id": 1, "title": "問1. 剣道の理念", "text": "全日本剣道連盟制定の「剣道の理念」を記せ。", "type": "text", "correct": "剣道は人間形成の道である", "keyword": "人間形成"},
+        {"id": 2, "title": "問2. 心構え", "text": "旺盛なる（　）を養い...", "type": "select", "options": ["", "気力", "活力", "体力"], "correct": "気力"},
+        {"id": 3, "title": "問2. 心構え", "text": "剣道の特性を通じて何を尊び、何を重んじるか？（記述）", "type": "text", "correct": "礼節を尊び、信義を重んじ", "keyword": "礼節"},
+        {"id": 4, "title": "問2. 心構え", "text": "国家社会を愛して広く人類の（　）に寄与せんとする。", "type": "select", "options": ["", "平和繁栄", "相互理解"], "correct": "平和繁栄"},
+        {"id": 5, "title": "問3. 中段の構え", "text": "中段の構えは、いわゆる何の構えといわれるか？（記述）", "type": "text", "correct": "攻防自在の構え", "keyword": "攻防自在"},
+        {"id": 6, "title": "問3. 中段の構え", "text": "中段は、もっとも（　）な構えである。", "type": "select", "options": ["", "正しい", "自然", "強力"], "correct": "正しい"},
+        {"id": 7, "title": "問4. 切り返しの意義", "text": "切り返しは何の動きを巧妙にするか？（記述）", "type": "text", "correct": "手の内の動き", "keyword": "手の内"},
+        {"id": 8, "title": "問4. 切り返しの意義", "text": "進退の動作を早くし、（　）を正確に知ることができる。", "type": "select", "options": ["", "間合", "機会", "打突"], "correct": "間合"},
+        {"id": 9, "title": "問4. 切り返しの意義", "text": "何の技を修練するものか？（記述）", "type": "text", "correct": "気剣体の一致の技", "keyword": "気剣体"},
+        {"id": 10, "title": "問5. 気剣体一致", "text": "「気」とは何の（　）をいうか？", "type": "select", "options": ["", "活動状態", "運用状態", "行動状態"], "correct": "活動状態"},
+        {"id": 11, "title": "問5. 気剣体一致", "text": "「剣」とは剣の（　）、「体」とは身体の（　）をいう。", "type": "select", "options": ["", "運用状態・行動状態", "行動状態・運用状態"], "correct": "運用状態・行動状態"},
+        {"id": 12, "title": "問6. 一足一刀の間合", "text": "一歩（　）相手に打突を与え、一歩（　）相手の打突をはずす。", "type": "select", "options": ["", "攻めれば・退けば", "踏み込めば・引けば"], "correct": "攻めれば・退けば"},
+        {"id": 13, "title": "問6. 一足一刀の間合", "text": "いわゆる（　）に強く、守りにも強い間合。", "type": "select", "options": ["", "攻め", "技", "心"], "correct": "攻め"},
+        {"id": 14, "title": "問7. 残心", "text": "残心とは、相手を（　）した後でも心を緩めないこと。", "type": "select", "options": ["", "打突", "圧倒", "制覇"], "correct": "打突"},
+        {"id": 15, "title": "問7. 残心", "text": "残心とは、どのような用意のことか？（記述）", "type": "text", "correct": "身構え、心構えを示し、相手の反撃を制する", "keyword": "反撃"},
+        {"id": 16, "title": "問8. 有効打突", "text": "有効打突の要素を2つ記せ。（記述）", "type": "text", "correct": "充実した気勢、適正な姿勢", "keyword": "充実"},
+        {"id": 17, "title": "問8. 有効打突", "text": "竹刀のどこで、どのように打突すべきか？（記述）", "type": "text", "correct": "打突部（物打ち）で刃筋正しく打突する", "keyword": "刃筋"},
+        {"id": 18, "title": "問9. 日本剣道形の重要性", "text": "剣道形は何の基本を示すものか？（記述）", "type": "text", "correct": "剣技のもっとも大事な基本", "keyword": "基本"},
+        {"id": 19, "title": "問9. 日本剣道形の重要性", "text": "剣道形は何の「理合」といえるか？（記述）", "type": "text", "correct": "術技の理合", "keyword": "理合"},
+        {"id": 20, "title": "問10. 日本剣道形の一本目", "text": "打太刀・仕太刀ともにどのような構えか？", "type": "select", "options": ["", "左上段", "右上段", "中段"], "correct": "左上段"},
+        {"id": 21, "title": "問10. 日本剣道形の一本目", "text": "打太刀は仕太刀のどこを打つか？", "type": "select", "options": ["", "面", "小手", "胴"], "correct": "面"},
+        {"id": 22, "title": "問10. 日本剣道形の一本目", "text": "打ち下ろした剣先はどこの高さになるか？（記述）", "type": "text", "correct": "膝頭よりもやや低くなる", "keyword": "膝頭"},
+        {"id": 23, "title": "共通：竹刀", "text": "竹刀の「中結い」から「先革」までを何という？（記述）", "type": "text", "correct": "物打ち", "keyword": "物打ち"},
+        {"id": 24, "title": "共通：礼儀", "text": "稽古の前後に行う相互の礼は何を忘れないためか？（記述）", "type": "text", "correct": "相手を尊重する心", "keyword": "尊重"},
+        {"id": 25, "title": "問4. 切り返し", "text": "切り返しは（　）を養うためのものである。", "type": "select", "options": ["", "体力気力", "勝負勘", "スピード"], "correct": "体力気力"},
+        {"id": 26, "title": "問7. 残心", "text": "相手に（　）を示し、（　）を示す。", "type": "select", "options": ["", "身構え・心構え", "威圧・動作"], "correct": "身構え・心構え"},
+        {"id": 27, "title": "問8. 有効打突", "text": "打突後には何があるものとするか？", "type": "select", "options": ["", "残心", "気合", "審判の宣告"], "correct": "残心"},
+        {"id": 28, "title": "共通：理念", "text": "「人間形成」とは、心を鍛え、何を磨くことか？（記述）", "type": "text", "correct": "人格を磨く", "keyword": "人格"},
+        {"id": 29, "title": "共通：構え", "text": "構えを解くとき、剣先はどこに向けるか？", "type": "select", "options": ["", "右下", "左下", "正面"], "correct": "右下"},
+        {"id": 30, "title": "共通：審査", "text": "審査において、最も重要視される構えは？", "type": "select", "options": ["", "中段の構え", "上段の構え", "下段の構え"], "correct": "中段の構え"},
+    ]
 
-# --- セッション初期化 ---
-if "questions_list" not in st.session_state:
-    st.session_state.questions_list = random.sample(ALL_QUESTIONS, len(ALL_QUESTIONS))
-if "page_index" not in st.session_state:
-    st.session_state.page_index = 0
-if "answers" not in st.session_state:
-    st.session_state.answers = {}
-if "finished" not in st.session_state:
-    st.session_state.finished = False
+# --- セッション管理 ---
+if "test_set" not in st.session_state:
+    st.session_state.test_set = random.sample(st.session_state.shodan_db, 10)
+if "current_idx" not in st.session_state:
+    st.session_state.current_idx = 0
+if "user_ans" not in st.session_state:
+    st.session_state.user_ans = {}
+if "done" not in st.session_state:
+    st.session_state.done = False
 
-# --- 関数 ---
-def reset_game():
-    st.session_state.questions_list = random.sample(ALL_QUESTIONS, len(ALL_QUESTIONS))
-    st.session_state.page_index = 0
-    st.session_state.answers = {}
-    st.session_state.finished = False
+def restart():
+    st.session_state.test_set = random.sample(st.session_state.shodan_db, 10)
+    st.session_state.current_idx = 0
+    st.session_state.user_ans = {}
+    st.session_state.done = False
     st.rerun()
 
-def finish_game():
-    st.session_state.finished = True
-    st.rerun()
+# --- メイン ---
+st.title("🥋 初段学科ドリル（記述・選択）")
 
-# --- サイドバー ---
-st.sidebar.title("操作パネル")
-if not st.session_state.finished:
-    st.sidebar.warning("まだ途中の場合でも、下のボタンで現在の状況を採点できます。")
-    if st.sidebar.button("途中でやめて採点する"):
-        finish_game()
-st.sidebar.divider()
-if st.sidebar.button("最初からやり直す"):
-    reset_game()
-
-# --- メイン画面 ---
-if not st.session_state.finished and st.session_state.page_index < len(st.session_state.questions_list):
-    # 【回答フェーズ】
-    current_q = st.session_state.questions_list[st.session_state.page_index]
+if not st.session_state.done:
+    q = st.session_state.test_set[st.session_state.current_idx]
     
-    st.progress(st.session_state.page_index / len(st.session_state.questions_list))
-    st.subheader(f"問題 {st.session_state.page_index + 1} / {len(st.session_state.questions_list)}")
-    st.header(current_q["title"])
-    st.info(current_q["text"])
-
-    if current_q["type"] == "text":
-        user_ans = st.text_area("回答を入力", key=f"input_{current_q['id']}")
+    st.progress(st.session_state.current_idx / 10)
+    st.subheader(f"問題 {st.session_state.current_idx + 1} / 10")
+    st.markdown(f"### {q['title']}")
+    st.info(q['text'])
+    
+    if q["type"] == "text":
+        ans = st.text_area("回答を入力してください", key=f"t_{q['id']}")
     else:
-        user_ans = st.selectbox("選択肢から選ぶ", current_q["options"], key=f"input_{current_q['id']}")
-
-    if st.button("次へ進む"):
-        st.session_state.answers[current_q["id"]] = user_ans
-        st.session_state.page_index += 1
+        ans = st.radio("選択してください", q['options'], key=f"r_{q['id']}")
+    
+    c1, c2 = st.columns(2)
+    if st.session_state.current_idx < 9:
+        if c1.button("次へ進む"):
+            st.session_state.user_ans[q['id']] = ans
+            st.session_state.current_idx += 1
+            st.rerun()
+    else:
+        if c1.button("採点する"):
+            st.session_state.user_ans[q['id']] = ans
+            st.session_state.done = True
+            st.rerun()
+    
+    if c2.button("途中で採点"):
+        st.session_state.done = True
         st.rerun()
+
 else:
-    # 【結果表示フェーズ】
     st.header("🏁 採点結果")
     score = 0
-    answered_count = len(st.session_state.answers)
-    
-    # 回答した問題だけ、あるいは全問表示
-    for q in st.session_state.questions_list:
-        user_val = st.session_state.answers.get(q["id"], "")
-        if user_val == "" and not st.session_state.finished: continue # 未回答は飛ばす（通常終了時用）
+    for q in st.session_state.test_set:
+        val = st.session_state.user_ans.get(q['id'], "未回答")
+        # 記述式はキーワードが含まれているかチェック
+        is_ok = q.get("keyword", "NONE") in val if q["type"] == "text" else (val == q["correct"])
+        if is_ok: score += 1
         
-        is_correct = q["correct"] in user_val if q["type"] == "text" else (user_val == q["correct"])
-        
-        with st.expander(f"{q['title']} - {'✅正解' if is_correct else '❌不正解'}"):
-            st.write(f"**あなたの回答:** {user_val if user_val else '(未回答)'}")
-            st.write(f"**正しい答え:** {q['correct']}")
-            if is_correct: score += 1
+        with st.expander(f"{q['title']}：{'✅' if is_ok else '❌'}"):
+            st.write(f"問題: {q['text']}")
+            st.write(f"あなたの回答: {val}")
+            st.write(f"模範解答: {q['correct']}")
 
-    st.divider()
-    st.subheader(f"正解数: {score} / {len(st.session_state.questions_list)}")
-    if score >= 8:
-        st.balloons()
-        st.success("素晴らしい！合格圏内です。")
-    
-    if st.button("もう一度最初から挑戦する"):
-        reset_game()
+    st.subheader(f"スコア: {score} / 10")
+    if score >= 8: st.balloons()
+    if st.button("もう一度挑戦"): restart()
