@@ -1,97 +1,80 @@
 import streamlit as st
 
 # ページ設定
-st.set_page_config(page_title="剣道昇段審査 全問網羅版", layout="wide")
+st.set_page_config(page_title="剣道昇段審査 完全版", layout="centered")
 
-# セッション状態の初期化
-if "submitted" not in st.session_state:
-    st.session_state.submitted = False
+# --- 初期化 ---
+if "page_index" not in st.session_state:
+    st.session_state.page_index = 0
+if "answers" not in st.session_state:
+    st.session_state.answers = {}
 
-def reset_answers():
-    for key in st.session_state.keys():
-        if key.startswith("ans_"):
-            st.session_state[key] = ""
-    st.session_state.submitted = False
+# 全問題のデータ定義（正解データ）
+QUESTIONS = [
+    {"id": "q1", "title": "問1. 剣道の理念", "text": "剣道の理念を記入してください", "type": "text", "correct": "剣道は人間形成の道である"},
+    {"id": "q2", "title": "問2. 修錬の心構え", "text": "旺盛なる（　）を養い...", "type": "select", "options": ["", "気力", "活力", "体力"], "correct": "気力"},
+    {"id": "q3", "title": "問3. 中段の構え", "text": "中段は、いわゆる（　）の構えといわれ...", "type": "select", "options": ["", "常態", "基本", "攻防"], "correct": "常態"},
+    {"id": "q4", "title": "問4. 切り返し", "text": "切り返しにより（　）が軽快闊達になる", "type": "select", "options": ["", "足さばき", "腕さばき", "体さばき"], "correct": "足さばき"},
+    {"id": "q5", "title": "問5. 気剣体一致", "text": "「気」とは心の（　）をいう", "type": "select", "options": ["", "活動状態", "運用状態", "静止状態"], "correct": "活動状態"},
+    {"id": "q6", "title": "問6. 一足一刀の間合", "text": "一歩（　）相手に打突を与えられる間合", "type": "select", "options": ["", "踏み込めば", "退けば", "止まれば"], "correct": "踏み込めば"},
+    {"id": "q7", "title": "問7. 残心", "text": "相手を（　）した後でも油断しない心", "type": "select", "options": ["", "打突", "圧倒", "注視"], "correct": "打突"},
+    {"id": "q8", "title": "問8. 有効打突", "text": "充実した気勢、（　）をもって...", "type": "select", "options": ["", "適正な姿勢", "強い打撃", "素早い動き"], "correct": "適正な姿勢"},
+    {"id": "q9", "title": "問9. 竹刀の名称", "text": "竹刀の打突部を（　）という", "type": "select", "options": ["", "物打ち", "先革", "中結"], "correct": "物打ち"},
+    {"id": "q10", "title": "問10. 稽古上の注意", "text": "道場内では常に（　）を守ること", "type": "select", "options": ["", "礼儀", "時間", "規則"], "correct": "礼儀"},
+]
 
-# サイドバー：全10問を分割
-st.sidebar.title("問題メニュー")
-page = st.sidebar.radio("ページを選択", [
-    "1. 理念と心構え (問1-2)",
-    "2. 構えと切り返し (問3-4)",
-    "3. 気剣体と間合 (問5-6)",
-    "4. 残心と有効打突 (問7-8)",
-    "5. 竹刀の名称とマナー (問9-10)"
-])
-if st.sidebar.button("全回答をリセット"):
-    reset_answers()
-    st.rerun()
+# --- ページ制御 ---
+def next_page():
+    st.session_state.page_index += 1
 
-st.title(f"🥋 {page}")
+def reset_all():
+    st.session_state.page_index = 0
+    st.session_state.answers = {}
 
-# 正誤判定用関数
-def check_label(user_ans, correct_ans):
-    if not st.session_state.submitted: return ""
-    return "✅ 正解" if user_ans == correct_ans else f"❌ 不正解（正解: {correct_ans}）"
+# --- メイン画面 ---
+if st.session_state.page_index < len(QUESTIONS):
+    # 問題回答フェーズ
+    current_q = QUESTIONS[st.session_state.page_index]
+    st.progress((st.session_state.page_index) / len(QUESTIONS))
+    st.subheader(f"問題 {st.session_state.page_index + 1} / {len(QUESTIONS)}")
+    st.header(current_q["title"])
+    st.info(current_q["text"])
 
-# --- 1. 問1-2 ---
-if "1." in page:
-    st.header("問1. 剣道の理念")
-    ans_q1 = st.text_area("理念を記入してください", key="ans_q1", placeholder="剣道は...")
-    if st.session_state.submitted:
-        st.info("【正解】 剣道は人間形成の道である")
+    if current_q["type"] == "text":
+        user_ans = st.text_area("回答を入力", key=f"input_{current_q['id']}")
+    else:
+        user_ans = st.selectbox("選択肢から選ぶ", current_q["options"], key=f"input_{current_q['id']}")
 
-    st.header("問2. 修錬の心構え")
-    q2_1 = st.selectbox("① 旺盛なる...", ["", "気力", "体力"], key="ans_q21")
-    st.write(check_label(q2_1, "気力"))
+    if st.button("次へ進む"):
+        st.session_state.answers[current_q["id"]] = user_ans
+        next_page()
+        st.rerun()
 
-# --- 2. 問3-4 ---
-elif "2." in page:
-    st.header("問3. 中段の構え")
-    q3_1 = st.selectbox("⑧ 何の構え？", ["", "常態", "基本"], key="ans_q34")
-    st.write(check_label(q3_1, "常態"))
+else:
+    # 最終結果フェーズ
+    st.header("🏁 全ての問題が終了しました")
+    st.write("あなたの回答と正解を照らし合わせます。")
+    st.divider()
 
-    st.header("問4. 切り返しの効果")
-    st.info("切り返しによって（ ⑭ ）が正しくなり、（ ⑮ ）が軽快闊達になり...")
-    c1, c2 = st.columns(2)
-    q4_1 = c1.selectbox("⑭ 何が正しくなる？", ["", "着装", "打突", "姿勢"], key="ans_q41")
-    st.write(check_label(q4_1, "打突"))
-    q4_2 = c2.selectbox("⑮ 何が軽快に？", ["", "足さばき", "体さばき", "腕さばき"], key="ans_q42")
-    st.write(check_label(q4_2, "足さばき"))
-
-# --- 3. 問5-6 ---
-elif "3." in page:
-    st.header("問5. 気剣体一致")
-    q5_1 = st.selectbox("⑨ 気：心の...", ["", "活動状態", "運用状態"], key="ans_q51")
-    st.write(check_label(q5_1, "活動状態"))
-
-    st.header("問6. 一足一刀の間合")
-    q6_1 = st.selectbox("⑫ 一歩（　）相手に打突を与える", ["", "踏み込めば", "退けば"], key="ans_q61")
-    st.write(check_label(q6_1, "踏み込めば"))
-
-# --- 4. 問7-8 ---
-elif "4." in page:
-    st.header("問7. 残心")
-    q7_1 = st.selectbox("⑭ 相手を（　）した後...", ["", "打突", "圧倒"], key="ans_q71")
-    st.write(check_label(q7_1, "打突"))
-
-    st.header("問8. 有効打突")
-    q8_1 = st.selectbox("⑮ 充実した気勢、（　）をもって...", ["", "適正な姿勢", "強い心"], key="ans_q81")
-    st.write(check_label(q8_1, "適正な姿勢"))
-
-# --- 5. 問9-10 ---
-elif "5." in page:
-    st.header("問9. 竹刀の名称")
-    st.info("竹刀の打突部を（ ⑯ ）という。")
-    q9_1 = st.selectbox("⑯ 名称を選択", ["", "物打ち", "先革", "鍔本"], key="ans_q91")
-    st.write(check_label(q9_1, "物打ち"))
-
-    st.header("問10. 稽古上の注意（マナー）")
-    st.info("道場内では常に（ ⑰ ）を守り、相手に対して（ ⑱ ）を忘れないこと。")
-    q10_1 = st.selectbox("⑰ 何を守る？", ["", "礼儀", "規則", "時間"], key="ans_q101")
-    st.write(check_label(q10_1, "礼儀"))
-
-# --- 共通ボタン ---
-st.divider()
-if st.button("採点・正解を表示"):
-    st.session_state.submitted = True
-    st.rerun()
+    score = 0
+    for q in QUESTIONS:
+        user_val = st.session_state.answers.get(q["id"], "")
+        is_correct = False
+        
+        if q["type"] == "text":
+            is_correct = q["correct"] in user_val
+        else:
+            is_correct = (user_val == q["correct"])
+        
+        if is_correct:
+            score += 1
+            st.success(f"**{q['title']}**\n\nあなたの回答: {user_val} （✅正解）")
+        else:
+            st.error(f"**{q['title']}**\n\nあなたの回答: {user_val if user_val else '未回答'}\n\n👉 正解: {q['correct']}")
+    
+    st.divider()
+    st.subheader(f"合計得点: {score} / {len(QUESTIONS)}")
+    
+    if st.button("最初からやり直す"):
+        reset_all()
+        st.rerun()
