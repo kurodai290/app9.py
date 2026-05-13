@@ -1,62 +1,78 @@
 import streamlit as st
 
+# ページ設定
 st.set_page_config(page_title="剣道昇段審査 練習アプリ", layout="wide")
 
-st.title("🥋 剣道昇段審査 学科試験ドリル")
-st.write("画像の問題をベースに作成しました。カッコに当てはまる言葉を選んでください。")
+# セッション状態の初期化（リセット機能用）
+def reset_answers():
+    for key in st.session_state.keys():
+        if key.startswith("ans_"):
+            st.session_state[key] = ""
+    st.session_state.submitted = False
 
-# スコア管理用
-if 'score' not in st.session_state:
-    st.session_state.score = 0
+if "submitted" not in st.session_state:
+    st.session_state.submitted = False
 
-# --- 問題2：心構え ---
-with st.expander("問2. 剣道修錬の心構え", expanded=True):
-    st.write("剣道を正しく学び、心身を修錬して旺盛なる（ ① ）を養い、剣道の特性を通じて（ ② ）を尊び、（ ③ ）を重んじ、（ ④ ）を尽くして常に自己の修養につとめ...")
-    c1, c2, c3, c4 = st.columns(4)
-    q2_1 = c1.selectbox("①", ["", "気力", "礼節", "信義", "誠意"], key="q21")
-    q2_2 = c2.selectbox("②", ["", "気力", "礼節", "信義", "誠意"], key="q22")
-    q2_3 = c3.selectbox("③", ["", "気力", "礼節", "信義", "誠意"], key="q23")
-    q2_4 = c4.selectbox("④", ["", "気力", "礼節", "信義", "誠意"], key="q24")
+# サイドバーでページ選択
+st.sidebar.title("メニュー")
+page = st.sidebar.radio("問題を選択", ["問2-3: 心構えと中段", "問5-6: 気剣体と間合", "問7-8: 残心と有効打突"])
+if st.sidebar.button("全回答をリセット"):
+    reset_answers()
 
-# --- 問題3：中段の構え ---
-with st.expander("問3. 中段の構え", expanded=True):
-    st.write("中段の構えは、剣道の基本の構えであり、相手を（ ⑤ ）にも、自分を（ ⑥ ）にも、相手の（ ⑦ ）に応ずるにも都合のよい、いわゆる（ ⑧ ）の構えで...")
-    c5, c6, c7, c8 = st.columns(4)
-    q3_1 = c5.selectbox("⑤", ["", "攻める", "守る", "変化"], key="q31")
-    q3_2 = c6.selectbox("⑥", ["", "攻める", "守る", "変化"], key="q32")
-    q3_3 = c7.selectbox("⑦", ["", "攻める", "守る", "変化"], key="q33")
-    q3_4 = c8.selectbox("⑧", ["", "正しい", "自在", "常態"], key="q34")
+st.title(f"🥋 剣道昇段審査：{page}")
 
-# --- 問題5：気剣体一致 ---
-with st.expander("問5. 気剣体一致", expanded=True):
-    st.write("気とは、心の（ ⑨ ）を言い、剣とは、剣の（ ⑩ ）を言い、体とは、身体の（ ⑪ ）をいう。")
-    c9, c10, c11 = st.columns(3)
-    q5_1 = c9.selectbox("⑨", ["", "活動状態", "運用状態", "行動状態"], key="q51")
-    q5_2 = c10.selectbox("⑩", ["", "活動状態", "運用状態", "行動状態"], key="q52")
-    q5_3 = c11.selectbox("⑪", ["", "活動状態", "運用状態", "行動状態"], key="q53")
+# 正誤判定用の関数
+def check_label(user_ans, correct_ans):
+    if not st.session_state.submitted:
+        return ""
+    return "✅ 正解" if user_ans == correct_ans else f"❌ 不正解（正解: {correct_ans}）"
 
-# --- 問題6：一足一刀の間合 ---
-with st.expander("問6. 一足一刀の間合", expanded=True):
-    st.write("一足一刀の間合とは、一歩（ ⑫ ）相手に打突を与え、一歩（ ⑬ ）相手の打突をはずすことができる。")
-    c12, c13 = st.columns(2)
-    q6_1 = c12.selectbox("⑫", ["", "踏み込めば", "退けば"], key="q61")
-    q6_2 = c13.selectbox("⑬", ["", "踏み込めば", "退けば"], key="q62")
-
-# --- 判定ボタン ---
-if st.button("採点する"):
-    # 正解リスト
-    results = [
-        q2_1 == "気力", q2_2 == "礼節", q2_3 == "信義", q2_4 == "誠意",
-        q3_1 == "攻める", q3_2 == "守る", q3_3 == "変化", q3_4 == "常態", # 画像の語群に基づくと「正しい」や「攻防自在」も候補ですがここでは一例
-        q5_1 == "活動状態", q5_2 == "運用状態", q5_3 == "行動状態",
-        q6_1 == "踏み込めば", q6_2 == "退けば"
-    ]
+# --- ページ1：問2と問3 ---
+if page == "問2-3: 心構えと中段":
+    st.header("問2. 剣道修錬の心構え")
+    st.info("剣道を正しく学び、心身を修錬して旺盛なる（ ① ）を養い、剣道の特性を通じて（ ② ）を尊び、（ ③ ）を重んじ、（ ④ ）を尽くして常に自己の修養につとめ...")
     
-    score = sum(results)
-    st.write(f"### スコア: {score} / {len(results)}")
+    col1, col2 = st.columns(2)
+    ans2_1 = col1.selectbox("①の答え", ["", "気力", "礼節", "信義", "誠意"], key="ans_q21")
+    st.write(check_label(ans2_1, "気力"))
     
-    if score == len(results):
-        st.success("満点です！合格間違いなし！")
-        st.balloons()
-    else:
-        st.warning("もう少しで見直し完了です。頑張りましょう！")
+    ans2_2 = col2.selectbox("②の答え", ["", "気力", "礼節", "信義", "誠意"], key="ans_q22")
+    st.write(check_label(ans2_2, "礼節"))
+
+    st.header("問3. 中段の構え")
+    st.info("中段の構えは、相手を（ ⑤ ）にも、自分を（ ⑥ ）にも適した...")
+    ans3_1 = st.selectbox("⑤ 相手を...", ["", "攻める", "守る", "変化"], key="ans_q31")
+    st.write(check_label(ans3_1, "攻める"))
+
+# --- ページ2：問5と問6 ---
+elif page == "問5-6: 気剣体と間合":
+    st.header("問5. 気剣体一致")
+    st.info("気とは心の（ ⑨ ）、剣とは剣の（ ⑩ ）、体とは身体の（ ⑪ ）をいう。")
+    
+    ans5_1 = st.selectbox("⑨ 気：心の...", ["", "活動状態", "運用状態", "行動状態"], key="ans_q51")
+    st.write(check_label(ans5_1, "活動状態"))
+    
+    ans5_2 = st.selectbox("⑩ 剣：剣の...", ["", "活動状態", "運用状態", "行動状態"], key="ans_q52")
+    st.write(check_label(ans5_2, "運用状態"))
+
+    st.header("問6. 一足一刀の間合")
+    ans6_1 = st.selectbox("⑫ 一歩（　）相手に打突を与える", ["", "踏み込めば", "退けば"], key="ans_q61")
+    st.write(check_label(ans6_1, "踏み込めば"))
+
+# --- ページ3：問7と問8 ---
+elif page == "問7-8: 残心と有効打突":
+    st.header("問7. 残心について")
+    st.info("残心とは、相手を（ ⑭ ）した後でも油断せず...")
+    ans7_1 = st.selectbox("⑭ 相手を...", ["", "打突", "制圧", "威圧"], key="ans_q71")
+    st.write(check_label(ans7_1, "打突"))
+
+    st.header("問8. 有効打突")
+    st.info("有効打突とは、充実した気勢、（ ⑮ ）をもって...")
+    ans8_1 = st.selectbox("⑮ 何をもって？", ["", "適正な姿勢", "残心", "刃筋正しく"], key="ans_q81")
+    st.write(check_label(ans8_1, "適正な姿勢"))
+
+# --- 共通の採点ボタン ---
+st.divider()
+if st.button("このページの採点をする"):
+    st.session_state.submitted = True
+    st.rerun()
