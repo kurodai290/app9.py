@@ -1,77 +1,42 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>剣道昇段審査 穴埋め練習</title>
-    <style>
-        body { font-family: sans-serif; line-height: 1.6; padding: 20px; background: #f4f4f4; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h1 { border-bottom: 2px solid #333; padding-bottom: 10px; }
-        .question { margin-bottom: 30px; padding: 15px; border-left: 5px solid #2196F3; background: #e3f2fd; }
-        .drop-zone { display: inline-block; width: 100px; height: 30px; border-bottom: 2px solid #333; margin: 0 5px; vertical-align: middle; text-align: center; background: #fff; }
-        .word-bank { margin-top: 20px; padding: 15px; border: 1px dashed #ccc; display: flex; flex-wrap: wrap; gap: 10px; }
-        .word { padding: 5px 15px; background: #fff; border: 1px solid #333; cursor: grab; border-radius: 4px; }
-        .word:active { cursor: grabbing; }
-        button { margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    </style>
-</head>
-<body>
+import streamlit as st
 
-<div class="container">
-    <h1>剣道昇段審査 穴埋めドリル</h1>
+st.set_page_config(page_title="剣道昇段審査 穴埋めドリル", layout="centered")
 
-    <!-- 第2問 -->
-    <div class="question">
-        <p><strong>問2. 剣道修錬の心構え</strong><br>
-        剣道を正しく学び、心身を修錬して旺盛なる（ <span class="drop-zone" id="q2-1"></span> ）を養い、剣道の特性を通じて（ <span class="drop-zone" id="q2-2"></span> ）を尊び、（ <span class="drop-zone" id="q2-3"></span> ）を重んじ、（ <span class="drop-zone" id="q2-4"></span> ）を尽くして常に自己の修養につとめ、以って、国家社会を愛して広く人類の（ <span class="drop-zone" id="q2-5"></span> ）に寄与せんとするものである。</p>
-        <div class="word-bank">
-            <div class="word" draggable="true">気力</div>
-            <div class="word" draggable="true">礼節</div>
-            <div class="word" draggable="true">信義</div>
-            <div class="word" draggable="true">誠意</div>
-            <div class="word" draggable="true">平和繁栄</div>
-        </div>
-    </div>
+st.title("🥋 剣道昇段審査 穴埋め練習")
+st.write("画像の問題を再現しました。適切な言葉を選んでください。")
 
-    <!-- 第6問 -->
-    <div class="question">
-        <p><strong>問6. 一足一刀の間合について</strong><br>
-        一足一刀の間合とは、一歩（ <span class="drop-zone" id="q6-1"></span> ）相手に打突を与え、一歩（ <span class="drop-zone" id="q6-2"></span> ）相手の打突をはずすことができる。いわゆる（ <span class="drop-zone" id="q6-3"></span> ）に強く、（ <span class="drop-zone" id="q6-4"></span> ）にも強い基本的な間合である。</p>
-        <div class="word-bank">
-            <div class="word" draggable="true">踏み込めば</div>
-            <div class="word" draggable="true">退けば</div>
-            <div class="word" draggable="true">攻め</div>
-            <div class="word" draggable="true">守り</div>
-        </div>
-    </div>
+# --- 問題2 ---
+st.header("問2. 剣道修錬の心構え")
+st.info("剣道を正しく学び、心身を修錬して旺盛なる ( ① ) を養い、剣道の特性を通じて ( ② ) を尊び、( ③ ) を重んじ、( ④ ) を尽くして常に自己の修養につとめ...")
 
-    <button onclick="checkAnswers()">答え合わせ</button>
-</div>
+col1, col2 = st.columns(2)
+with col1:
+    ans1 = st.selectbox("①の答え", ["---", "気力", "礼節", "信義", "誠意"])
+    ans2 = st.selectbox("②の答え", ["---", "気力", "礼節", "信義", "誠意"])
+with col2:
+    ans3 = st.selectbox("③の答え", ["---", "気力", "礼節", "信義", "誠意"])
+    ans4 = st.selectbox("④の答え", ["---", "気力", "礼節", "信義", "誠意"])
 
-<script>
-    const words = document.querySelectorAll('.word');
-    const zones = document.querySelectorAll('.drop-zone');
+# --- 問題6 ---
+st.header("問6. 一足一刀の間合")
+st.info("一足一刀の間合とは、一歩 ( ⑤ ) 相手に打突を与え、一歩 ( ⑥ ) 相手の打突をはずすことができる。")
 
-    words.forEach(word => {
-        word.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text', e.target.innerText);
-        });
-    });
+col3, col4 = st.columns(2)
+with col3:
+    ans5 = st.selectbox("⑤の答え", ["---", "踏み込めば", "退けば", "攻めれば"])
+with col4:
+    ans6 = st.selectbox("⑥の答え", ["---", "踏み込めば", "退けば", "攻めれば"])
 
-    zones.forEach(zone => {
-        zone.addEventListener('dragover', (e) => e.preventDefault());
-        zone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            const data = e.dataTransfer.getData('text');
-            e.target.innerText = data;
-            e.target.style.background = "#fff9c4";
-        });
-    });
-
-    function checkAnswers() {
-        alert("正解を確認して、自分の回答と照らし合わせてみましょう！\n\n問2: 気力、礼節、信義、誠意、平和繁栄\n問6: 踏み込めば、退けば、攻め、守り");
-    }
-</script>
-
-</body>
-</html>
+# --- 答え合わせ ---
+if st.button("答え合わせをする"):
+    correct_count = 0
+    if ans1 == "気力": correct_count += 1
+    if ans2 == "礼節": correct_count += 1
+    if ans3 == "信義": correct_count += 1
+    if ans4 == "誠意": correct_count += 1
+    if ans5 == "踏み込めば": correct_count += 1
+    if ans6 == "退けば": correct_count += 1
+    
+    st.success(f"結果: 6問中 {correct_count} 門正解です！")
+    if correct_count == 6:
+        st.balloons()
