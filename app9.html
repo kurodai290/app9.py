@@ -36,23 +36,22 @@
 <div class="container">
     <h1>Corporate Wars Premium</h1>
 
-    <!-- 1. 初期ログイン・会社設立画面 -->
+    <!-- 1. 会社設立画面（ここを1番上に配置し、エラーの原因になる余計な条件分岐を廃止） -->
     <div id="setup-screen" class="card">
         <h2>🏢 新規企業の創立登記申請</h2>
-        <p style="font-size:13px; color:#aaa;">初めてプレイする方は、ここから自分の会社を設立してスタートできます！（同期コードは不要です）</p>
+        <p style="font-size:13px; color:#aaa;">好きな会社名とあなたの名前を入力して、すぐ下の緑のボタンを押してください！</p>
         <input type="text" id="company-name" placeholder="新しい会社名（例：サイバーコア株式会社）">
         <input type="text" id="ceo-name" placeholder="代表取締役CEO（あなたの名前）">
-        <button class="btn-success" onclick="createCompany()">会社を設立して市場に参入する</button>
+        <button class="btn-success" id="start-trigger" onclick="createCompany()">会社を設立して市場に参入する</button>
 
         <hr style="border-color:#333; margin:20px 0;">
         
-        <!-- マルチプレイ連携は折りたたみ式に変更 -->
         <button class="btn-primary" style="background:#333; color:#aaa;" onclick="toggleSyncPanel()">既存のマルチプレイ市場に参加する（コードをお持ちの方）</button>
         <div id="sync-panel" style="display:none; margin-top:15px; padding:15px; background:#1a1a1a; border-radius:6px; border:1px solid #ffcc00;">
             <p style="font-size:12px; color:#aaa; margin:0 0 8px 0;">ライバルから貰った「同期用データコード」を貼り付けて同期してください。</p>
             <div style="display:flex; gap:10px;">
                 <input type="text" id="import-data-input" placeholder="データコードをここに貼り付け" style="margin:0;">
-                <button class="btn-primary" onclick="importData()" style="width:120px; margin:0;">データを同期</button>
+                <button class="btn-primary" onclick="importData()">データを同期</button>
             </div>
         </div>
     </div>
@@ -98,11 +97,10 @@
             </div>
             <div class="card" style="border-color:#ffcc00;">
                 <h3>🤝 マルチプレイ同期（ライバルを招待する）</h3>
-                <p style="font-size:12px; color:#aaa;">下のボタンを押すと、あなたの会社の最新データコードがコピーされます。これをライバルに送って、相手のログイン画面にある同期枠に貼り付けてもらってください。</p>
-                <button class="btn-primary" style="background:#555;" onclick="generateSyncLink()">同期用データコードを発行・コピー</button>
+                <p style="font-size:12px; color:#aaa;">下のボタンを押すと最新のデータコードが生成されます。これをライバルに送ってください。</p>
+                <button class="btn-primary" style="background:#555;" onclick="generateSyncLink()">同期用データコードを発行・表示</button>
                 <div class="share-box" id="share-url">データコードはここに生成されます</div>
                 
-                <!-- ログイン後も追加でコードを読み込めるように設置 -->
                 <p style="font-size:12px; color:#aaa; margin:15px 0 5px 0;">既存の市場にライバルを追加インポートする場合：</p>
                 <div style="display:flex; gap:10px;">
                     <input type="text" id="import-data-input-active" placeholder="追加するライバルのコードを貼り付け" style="margin:0;">
@@ -155,8 +153,10 @@
 </div>
 
 <script>
+    // ブラウザセキュリティによる動作拒否を防ぐため、データをメモリ上に完全独立
     let myCompany = {
-        id: "", name: "", ceo: "", assets: 2000, defense: 100,
+        id: "corp_id_" + Math.floor(Math.random() * 899999 + 100000), 
+        name: "", ceo: "", assets: 2000, defense: 100,
         staffCount: 0, autoPower: 0, stockPrice: 100, productLevel: 0
     };
     let competitors = {};
@@ -174,7 +174,10 @@
         { id: "ev", name: "自動運転空飛ぶクルマ開発", cost: 250000, multi: 2.5, done: false }
     ];
 
+    // 起動時の初期化（エラーになりやすい複雑な外部URLチェックやローカルストレージ自動ロードをすべて廃止）
     window.onload = function() {
-        if (localStorage.getItem("corp_wars_premium_v5")) {
-            const saved = JSON.parse(localStorage.getItem("corp_wars_premium_v5"));
-            myCompany = saved.myCompany || myCompany;
+        setInterval(gameTick, 1000);
+    }
+
+    function toggleSyncPanel() {
+        const panel = document.getElementById("sync-panel");
