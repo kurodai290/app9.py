@@ -173,11 +173,11 @@ else:
     with tab2:
         st.subheader("人材マネジメント")
         for s_id, staff in st.session_state.staff.items():
-            col_info, col_btn = st.columns([3, 1])  # 比率を明示的に指定して2列に分割
+            col_info, col_btn = st.columns(2)  # 2列にハッキリ分割
             with col_info:
                 st.markdown(f"**{staff['name']}** (現在: {staff['count']}名)<br><span style='color:#aaa;'>雇用コスト: ￥{staff['cost']:,} | 労働力: +{staff['power']}/秒</span>", unsafe_allow_html=True)
             with col_btn:
-                if st.button(f"雇用する", key=f"buy_{s_id}"):
+                if st.button(f"{staff['name']}を雇用する", key=f"buy_{s_id}"):
                     if st.session_state.assets >= staff["cost"]:
                         st.session_state.assets -= staff["cost"]
                         st.session_state.staff[s_id]["count"] += 1
@@ -190,7 +190,7 @@ else:
     with tab3:
         st.subheader("プロダクト / イノベーション")
         for p_id, prod in st.session_state.products.items():
-            col_info, col_btn = st.columns([3, 1])  # 比率を明示的に指定して2列に分割
+            col_info, col_btn = st.columns(2)  # 2列にハッキリ分割
             with col_info:
                 status_txt = "【開発完了】" if prod["done"] else f"費用: ￥{prod['cost']:,}"
                 st.markdown(f"**{prod['name']}** ({status_txt})<br><span style='color:#aaa;'>生産力ボーナス: 全体労働力 {prod['multi']} 倍</span>", unsafe_allow_html=True)
@@ -198,7 +198,7 @@ else:
                 if prod["done"]:
                     st.write("✅ 投資済み")
                 else:
-                    if st.button(f"開発投資", key=f"prod_{p_id}"):
+                    if st.button(f"{prod['name']}へ開発投資", key=f"prod_{p_id}"):
                         if st.session_state.assets >= prod["cost"]:
                             st.session_state.assets -= prod["cost"]
                             st.session_state.products[p_id]["done"] = True
@@ -235,5 +235,5 @@ else:
                 continue
             display_count += 1
             
-            col_c_info, col_c_btn = st.columns([3, 1])  # 比率を明示的に指定して2列に分割
+            col_c_info, col_c_btn = st.columns(2)  # 2列にハッキリ分割
             with col_c_info:
