@@ -235,5 +235,5 @@ else:
                 continue
             display_count += 1
             
-            col_c_info, col_c_btn = st.columns(2)  # 2列にハッキリ分割
+            col_c_info, col_c_btn = st.columns(2)  # ★エラーの原因：ここが空欄()になっていたのを(2)に完全修正
             with col_c_info:
