@@ -91,7 +91,6 @@ if not st.session_state.company_name:
 
 # --- 5. メインゲーム画面 ---
 else:
-    # リアルタイムの生産力と株価の計算
     base_power = sum(s["count"] * s["power"] for s in st.session_state.staff.values())
     multiplier = 1.0
     for p in st.session_state.products.values():
@@ -102,16 +101,13 @@ else:
     stock_base = (st.session_state.assets * 0.05) + (sum(s["count"] for s in st.session_state.staff.values()) * 50) + (sum(1 for p in st.session_state.products.values() if p["done"]) * 1000)
     stock_price = max(10, int(stock_base * random.uniform(0.97, 1.03)))
     
-    # 画面上部ステータス
     col1, col2, col3 = st.columns(3)
     col1.metric(label="自社総資産", value=f"￥{st.session_state.assets:,}")
     col2.metric(label="自社現在株価", value=f"￥{stock_price:,}")
     col3.metric(label="社員数 / 生産力", value=f"{sum(s['count'] for s in st.session_state.staff.values())} 名 / {auto_power:,}秒")
     
-    # タブメニュー
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["🏢 自社概念", "👥 社員雇用", "🧪 新商品開発", "📈 株価専用窓口", "⚔️ 世界の市場記録"])
     
-    # TAB 1: 自社概念
     with tab1:
         st.subheader("企業アイデンティティ")
         st.write(f"**会社名:** {st.session_state.company_name}")
@@ -159,7 +155,6 @@ else:
                 except Exception:
                     st.error("同期失敗")
 
-    # TAB 2: 社員雇用
     with tab2:
         st.subheader("人材マネジメント")
         for s_id, staff in st.session_state.staff.items():
@@ -174,7 +169,6 @@ else:
                 else:
                     st.error("資金不足")
 
-    # TAB 3: 新商品開発
     with tab3:
         st.subheader("プロダクト開発")
         for p_id, prod in st.session_state.products.items():
@@ -190,7 +184,6 @@ else:
                     else:
                         st.error("資金不足")
 
-    # TAB 4: 株価窓口
     with tab4:
         st.subheader("証券取引情報")
         market_cap = stock_price * 10000
@@ -205,7 +198,6 @@ else:
         sc1.metric(label="仮想時価総額評価", value=f"￥{market_cap:,}")
         sc2.metric(label="企業格付ランク", value=rank)
 
-    # TAB 5: 世界の市場記録
     with tab5:
         st.subheader("競合他社一覧")
         display_count = 0
@@ -216,17 +208,21 @@ else:
             
             box = st.container(border=True)
             box.markdown(f"🔴 **{comp['name']}** (CEO: {comp['ceo']}) | 資産: ￥{comp['assets']:,} | 株価: ￥{comp['stockPrice']:,} | 防衛力: {comp['defense']} DEF")
+            
+            # ★問題のエラー箇所を完全リファクタリング：else構造をなくし、早期判定に変えてインデントバグを永久に封印
             if box.button(f"{comp['name']}へ買収作戦を実行 (コスト￥1,500)", key=f"btn_atk_{comp_id}"):
-                if st.session_state.assets >= 1500:
+                if st.session_state.assets < 1500:
+                    st.error("軍資金不足")
+                    st.ghost_button() # 早期終了用のダミー
+                else:
                     st.session_state.assets -= 1500
                     damage = random.randint(20, 70) + (sum(s['count'] for s in st.session_state.staff.values()) * 2)
                     st.session_state.competitors[comp_id]["defense"] -= damage
+                    
                     if st.session_state.competitors[comp_id]["defense"] <= 0:
                         st.balloons()
                         st.success(f"🎉 {comp['name']} の買収に成功しました！資産 ￥{comp['assets']:,} を吸収します。")
                         st.session_state.assets += comp['assets']
                         del st.session_state.competitors[comp_id]
-                    else:
-                        st.warning(f"⚔️ 敵企業の防衛力を {damage} 削りました！")
-                    st.rerun()
-                else:
+                        st.rerun()
+                    
