@@ -17,7 +17,7 @@ st.markdown("""
 
 st.title("🏢 Corporate Wars Premium (Pure Python)")
 
-# 2. セッションデータの初期化
+# 2. セッションデータの初期化（銀行機能用データを追加）
 if "company_id" not in st.session_state:
     st.session_state.company_id = ""
 if "company_name" not in st.session_state:
@@ -28,6 +28,8 @@ if "assets" not in st.session_state:
     st.session_state.assets = 2000
 if "defense" not in st.session_state:
     st.session_state.defense = 100
+if "debt" not in st.session_state:  # 借金（元金）
+    st.session_state.debt = 0
 if "staff" not in st.session_state:
     st.session_state.staff = {
         "intern": {"name": "インターン生", "cost": 500, "power": 5, "count": 0},
@@ -98,7 +100,9 @@ else:
             multiplier *= p["multi"]
     auto_power = int(base_power * multiplier)
     
-    stock_base = (st.session_state.assets * 0.05) + (sum(s["count"] for s in st.session_state.staff.values()) * 50) + (sum(1 for p in st.session_state.products.values() if p["done"]) * 1000)
+    # 資産評価は借金を差し引いた「純資産」ベースに変更
+    net_assets = st.session_state.assets - st.session_state.debt
+    stock_base = (net_assets * 0.05) + (sum(s["count"] for s in st.session_state.staff.values()) * 50) + (sum(1 for p in st.session_state.products.values() if p["done"]) * 1000)
     stock_price = max(10, int(stock_base * random.uniform(0.97, 1.03)))
     
     col1, col2, col3 = st.columns(3)
@@ -106,13 +110,15 @@ else:
     col2.metric(label="自社現在株価", value=f"￥{stock_price:,}")
     col3.metric(label="社員数 / 生産力", value=f"{sum(s['count'] for s in st.session_state.staff.values())} 名 / {auto_power:,}秒")
     
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🏢 自社概念", "👥 社員雇用", "🧪 新商品開発", "📈 株価専用窓口", "⚔️ 世界の市場記録"])
+    # 銀行機能を追加した6つのタブメニュー
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["🏢 自社概念", "👥 社員雇用", "🧪 新商品開発", "🏦 銀行窓口", "📈 株価専用窓口", "⚔️ 世界の市場記録"])
     
     with tab1:
         st.subheader("企業アイデンティティ")
         st.write(f"**会社名:** {st.session_state.company_name}")
         st.write(f"**最高経営責任者 (CEO):** {st.session_state.ceo_name}")
         st.write(f"**セキュリティ防衛力:** {st.session_state.defense} DEF")
+        st.write(f"**現在の借金残高:** ￥{st.session_state.debt:,}")
         
         st.markdown("### 経営アクション")
         c1, c2, c3 = st.columns(3)
@@ -167,7 +173,7 @@ else:
                     st.session_state.staff[s_id]["cost"] = int(staff["cost"] * 1.15)
                     st.rerun()
                 else:
-                    st.error("資金不足")
+                    st.error("資金不足（銀行で融資を受けることを検討してください）")
 
     with tab3:
         st.subheader("プロダクト開発")
@@ -182,47 +188,39 @@ else:
                         st.session_state.products[p_id]["done"] = True
                         st.rerun()
                     else:
-                        st.error("資金不足")
+                        st.error("資金不足（銀行で融資を受けることを検討してください）")
 
+    # NEW PAGE: 銀行窓口
     with tab4:
-        st.subheader("証券取引情報")
-        market_cap = stock_price * 10000
-        rank = "E"
-        if stock_price > 5000: rank = "S"
-        elif stock_price > 2000: rank = "A"
-        elif stock_price > 1000: rank = "B"
-        elif stock_price > 500: rank = "C"
-        elif stock_price > 200: rank = "D"
+        st.subheader("🏦 中央商業銀行 - 融資・返済窓口")
+        st.write("手元の資金をレバレッジをかけて増やし、企業成長を加速させましょう。")
         
-        sc1, sc2 = st.columns(2)
-        sc1.metric(label="仮想時価総額評価", value=f"￥{market_cap:,}")
-        sc2.metric(label="企業格付ランク", value=rank)
-
-    with tab5:
-        st.subheader("競合他社一覧")
-        display_count = 0
-        for comp_id, comp in list(st.session_state.competitors.items()):
-            if comp_id == st.session_state.company_id:
-                continue
-            display_count += 1
-            
-            box = st.container(border=True)
-            box.markdown(f"🔴 **{comp['name']}** (CEO: {comp['ceo']}) | 資産: ￥{comp['assets']:,} | 株価: ￥{comp['stockPrice']:,} | 防衛力: {comp['defense']} DEF")
-            
-            # ★問題のエラー箇所を完全リファクタリング：else構造をなくし、早期判定に変えてインデントバグを永久に封印
-            if box.button(f"{comp['name']}へ買収作戦を実行 (コスト￥1,500)", key=f"btn_atk_{comp_id}"):
-                if st.session_state.assets < 1500:
-                    st.error("軍資金不足")
-                    st.ghost_button() # 早期終了用のダミー
-                else:
-                    st.session_state.assets -= 1500
-                    damage = random.randint(20, 70) + (sum(s['count'] for s in st.session_state.staff.values()) * 2)
-                    st.session_state.competitors[comp_id]["defense"] -= damage
-                    
-                    if st.session_state.competitors[comp_id]["defense"] <= 0:
-                        st.balloons()
-                        st.success(f"🎉 {comp['name']} の買収に成功しました！資産 ￥{comp['assets']:,} を吸収します。")
-                        st.session_state.assets += comp['assets']
-                        del st.session_state.competitors[comp_id]
-                        st.rerun()
-                    
+        # ステータス表示
+        b_col1, b_col2 = st.columns(2)
+        b_col1.metric(label="現在の借金総額", value=f"￥{st.session_state.debt:,}")
+        b_col2.metric(label="融資可能残高", value=f"￥{max(0, 10000000 - st.session_state.debt):,}")
+        
+        st.markdown("### 1. 融資（お金を借りる）")
+        loan_amount = st.number_input("融資希望額（￥）", min_value=0, max_value=10000000, step=50000, value=100000)
+        if st.button("融資を実行する (利息5%が即座に上乗せされます)", type="secondary"):
+            if st.session_state.debt + loan_amount > 10000000:
+                st.error("融資限度額（10,000,000円）を超えています。")
+            elif loan_amount <= 0:
+                st.error("正しい金額を入力してください。")
+            else:
+                st.session_state.assets += loan_amount
+                st.session_state.debt += int(loan_amount * 1.05)  # 5%の利息を乗せて借金に加算
+                st.success(f"経常利益として ￥{loan_amount:,} の融資が実行されました。")
+                st.rerun()
+                
+        st.markdown("### 2. 返済（お金を返す）")
+        repay_amount = st.number_input("返済額（￥）", min_value=0, max_value=max(1, st.session_state.debt), step=50000, value=min(100000, st.session_state.debt))
+        if st.button("借金を返済する"):
+            if repay_amount > st.session_state.assets:
+                st.error("手元資金（総資産）が足りません。")
+            elif repay_amount > st.session_state.debt:
+                st.error("借金残高以上の金額は返済できません。")
+            elif repay_amount <= 0:
+                st.error("正しい金額を入力してください。")
+            else:
+                st.session_state.assets -= repay_amount
