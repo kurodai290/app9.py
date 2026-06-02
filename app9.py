@@ -1,107 +1,214 @@
-import streamlit as st
-import random
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corporate Wars Online</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #1a1a1a; color: #fff; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1, h2 { color: #00ffcc; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        .card { background: #2a2a2a; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 4px; border: none; box-sizing: border-box; font-size: 16px; }
+        input { background: #3a3a3a; color: #fff; }
+        button { background: #00ffcc; color: #1a1a1a; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #00cca3; }
+        button.attack { background: #ff4444; color: #fff; }
+        button.attack:hover { background: #cc3333; }
+        .flex { display: flex; justify-content: space-between; gap: 10px; }
+        .market-list { list-style: none; padding: 0; }
+        .market-item { background: #333; padding: 15px; margin-bottom: 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #00ffcc; }
+        .market-item.enemy { border-left-color: #ff4444; }
+        .share-uri { background: #111; padding: 10px; border-radius: 4px; word-break: break-all; font-family: monospace; font-size: 12px; color: #aaa; margin-top: 10px; }
+    </style>
+</head>
+<body>
 
-# ページ設定
-st.set_page_config(page_title="剣道初段 学科ドリル（記述対応版）", layout="centered")
+<div class="container">
+    <h1>Corporate Wars Online</h1>
 
-# --- 初段：データベース（記述問題を強化） ---
-if "shodan_db" not in st.session_state:
-    st.session_state.shodan_db = [
-        {"id": 1, "title": "問1. 剣道の理念", "text": "全日本剣道連盟制定の「剣道の理念」を記せ。", "type": "text", "correct": "剣道は人間形成の道である", "keyword": "人間形成"},
-        {"id": 2, "title": "問2. 心構え", "text": "旺盛なる（　）を養い...", "type": "select", "options": ["", "気力", "活力", "体力"], "correct": "気力"},
-        {"id": 3, "title": "問2. 心構え", "text": "剣道の特性を通じて何を尊び、何を重んじるか？（記述）", "type": "text", "correct": "礼節を尊び、信義を重んじ", "keyword": "礼節"},
-        {"id": 4, "title": "問2. 心構え", "text": "国家社会を愛して広く人類の（　）に寄与せんとする。", "type": "select", "options": ["", "平和繁栄", "相互理解"], "correct": "平和繁栄"},
-        {"id": 5, "title": "問3. 中段の構え", "text": "中段の構えは、いわゆる何の構えといわれるか？（記述）", "type": "text", "correct": "攻防自在の構え", "keyword": "攻防自在"},
-        {"id": 6, "title": "問3. 中段の構え", "text": "中段は、もっとも（　）な構えである。", "type": "select", "options": ["", "正しい", "自然", "強力"], "correct": "正しい"},
-        {"id": 7, "title": "問4. 切り返しの意義", "text": "切り返しは何の動きを巧妙にするか？（記述）", "type": "text", "correct": "手の内の動き", "keyword": "手の内"},
-        {"id": 8, "title": "問4. 切り返しの意義", "text": "進退の動作を早くし、（　）を正確に知ることができる。", "type": "select", "options": ["", "間合", "機会", "打突"], "correct": "間合"},
-        {"id": 9, "title": "問4. 切り返しの意義", "text": "何の技を修練するものか？（記述）", "type": "text", "correct": "気剣体の一致の技", "keyword": "気剣体"},
-        {"id": 10, "title": "問5. 気剣体一致", "text": "「気」とは何の（　）をいうか？", "type": "select", "options": ["", "活動状態", "運用状態", "行動状態"], "correct": "活動状態"},
-        {"id": 11, "title": "問5. 気剣体一致", "text": "「剣」とは剣の（　）、「体」とは身体の（　）をいう。", "type": "select", "options": ["", "運用状態・行動状態", "行動状態・運用状態"], "correct": "運用状態・行動状態"},
-        {"id": 12, "title": "問6. 一足一刀の間合", "text": "一歩（　）相手に打突を与え、一歩（　）相手の打突をはずす。", "type": "select", "options": ["", "攻めれば・退けば", "踏み込めば・引けば"], "correct": "攻めれば・退けば"},
-        {"id": 13, "title": "問6. 一足一刀の間合", "text": "いわゆる（　）に強く、守りにも強い間合。", "type": "select", "options": ["", "攻め", "技", "心"], "correct": "攻め"},
-        {"id": 14, "title": "問7. 残心", "text": "残心とは、相手を（　）した後でも心を緩めないこと。", "type": "select", "options": ["", "打突", "圧倒", "制覇"], "correct": "打突"},
-        {"id": 15, "title": "問7. 残心", "text": "残心とは、どのような用意のことか？（記述）", "type": "text", "correct": "身構え、心構えを示し、相手の反撃を制する", "keyword": "反撃"},
-        {"id": 16, "title": "問8. 有効打突", "text": "有効打突の要素を2つ記せ。（記述）", "type": "text", "correct": "充実した気勢、適正な姿勢", "keyword": "充実"},
-        {"id": 17, "title": "問8. 有効打突", "text": "竹刀のどこで、どのように打突すべきか？（記述）", "type": "text", "correct": "打突部（物打ち）で刃筋正しく打突する", "keyword": "刃筋"},
-        {"id": 18, "title": "問9. 日本剣道形の重要性", "text": "剣道形は何の基本を示すものか？（記述）", "type": "text", "correct": "剣技のもっとも大事な基本", "keyword": "基本"},
-        {"id": 19, "title": "問9. 日本剣道形の重要性", "text": "剣道形は何の「理合」といえるか？（記述）", "type": "text", "correct": "術技の理合", "keyword": "理合"},
-        {"id": 20, "title": "問10. 日本剣道形の一本目", "text": "打太刀・仕太刀ともにどのような構えか？", "type": "select", "options": ["", "左上段", "右上段", "中段"], "correct": "左上段"},
-        {"id": 21, "title": "問10. 日本剣道形の一本目", "text": "打太刀は仕太刀のどこを打つか？", "type": "select", "options": ["", "面", "小手", "胴"], "correct": "面"},
-        {"id": 22, "title": "問10. 日本剣道形の一本目", "text": "打ち下ろした剣先はどこの高さになるか？（記述）", "type": "text", "correct": "膝頭よりもやや低くなる", "keyword": "膝頭"},
-        {"id": 23, "title": "共通：竹刀", "text": "竹刀の「中結い」から「先革」までを何という？（記述）", "type": "text", "correct": "物打ち", "keyword": "物打ち"},
-        {"id": 24, "title": "共通：礼儀", "text": "稽古の前後に行う相互の礼は何を忘れないためか？（記述）", "type": "text", "correct": "相手を尊重する心", "keyword": "尊重"},
-        {"id": 25, "title": "問4. 切り返し", "text": "切り返しは（　）を養うためのものである。", "type": "select", "options": ["", "体力気力", "勝負勘", "スピード"], "correct": "体力気力"},
-        {"id": 26, "title": "問7. 残心", "text": "相手に（　）を示し、（　）を示す。", "type": "select", "options": ["", "身構え・心構え", "威圧・動作"], "correct": "身構え・心構え"},
-        {"id": 27, "title": "問8. 有効打突", "text": "打突後には何があるものとするか？", "type": "select", "options": ["", "残心", "気合", "審判の宣告"], "correct": "残心"},
-        {"id": 28, "title": "共通：理念", "text": "「人間形成」とは、心を鍛え、何を磨くことか？（記述）", "type": "text", "correct": "人格を磨く", "keyword": "人格"},
-        {"id": 29, "title": "共通：構え", "text": "構えを解くとき、剣先はどこに向けるか？", "type": "select", "options": ["", "右下", "左下", "正面"], "correct": "右下"},
-        {"id": 30, "title": "共通：審査", "text": "審査において、最も重要視される構えは？", "type": "select", "options": ["", "中段の構え", "上段の構え", "下段の構え"], "correct": "中段の構え"},
-    ]
+    <!-- 1. 会社設立・ログイン画面 -->
+    <div id="setup-screen" class="card">
+        <h2>会社を設立する</h2>
+        <input type="text" id="company-name" placeholder="会社名を入力してください">
+        <input type="text" id="ceo-name" placeholder="CEO（あなたの名前）">
+        <button onclick="createCompany()">登記申請（ゲーム開始）</button>
+    </div>
 
-# --- セッション管理 ---
-if "test_set" not in st.session_state:
-    st.session_state.test_set = random.sample(st.session_state.shodan_db, 10)
-if "current_idx" not in st.session_state:
-    st.session_state.current_idx = 0
-if "user_ans" not in st.session_state:
-    st.session_state.user_ans = {}
-if "done" not in st.session_state:
-    st.session_state.done = False
-
-def restart():
-    st.session_state.test_set = random.sample(st.session_state.shodan_db, 10)
-    st.session_state.current_idx = 0
-    st.session_state.user_ans = {}
-    st.session_state.done = False
-    st.rerun()
-
-# --- メイン ---
-st.title("🥋 初段学科ドリル（記述・選択）")
-
-if not st.session_state.done:
-    q = st.session_state.test_set[st.session_state.current_idx]
-    
-    st.progress(st.session_state.current_idx / 10)
-    st.subheader(f"問題 {st.session_state.current_idx + 1} / 10")
-    st.markdown(f"### {q['title']}")
-    st.info(q['text'])
-    
-    if q["type"] == "text":
-        ans = st.text_area("回答を入力してください", key=f"t_{q['id']}")
-    else:
-        ans = st.radio("選択してください", q['options'], key=f"r_{q['id']}")
-    
-    c1, c2 = st.columns(2)
-    if st.session_state.current_idx < 9:
-        if c1.button("次へ進む"):
-            st.session_state.user_ans[q['id']] = ans
-            st.session_state.current_idx += 1
-            st.rerun()
-    else:
-        if c1.button("採点する"):
-            st.session_state.user_ans[q['id']] = ans
-            st.session_state.done = True
-            st.rerun()
-    
-    if c2.button("途中で採点"):
-        st.session_state.done = True
-        st.rerun()
-
-else:
-    st.header("🏁 採点結果")
-    score = 0
-    for q in st.session_state.test_set:
-        val = st.session_state.user_ans.get(q['id'], "未回答")
-        # 記述式はキーワードが含まれているかチェック
-        is_ok = q.get("keyword", "NONE") in val if q["type"] == "text" else (val == q["correct"])
-        if is_ok: score += 1
+    <!-- 2. メインゲーム画面（初期状態は非表示） -->
+    <div id="game-screen" class="card" style="display:none;">
+        <h2 id="display-company">株式会社 ---</h2>
+        <p>CEO: <span id="display-ceo">---</span></p>
         
-        with st.expander(f"{q['title']}：{'✅' if is_ok else '❌'}"):
-            st.write(f"問題: {q['text']}")
-            st.write(f"あなたの回答: {val}")
-            st.write(f"模範解答: {q['correct']}")
+        <div class="card" style="background:#222;">
+            <div class="flex">
+                <div>現在の総資産:<br><strong style="font-size: 24px; color: #00ffcc;">￥<span id="display-assets">0</span></strong></div>
+                <div>会社の防衛力:<br><strong style="font-size: 24px; color: #ffcc00;"><span id="display-defense">100</span> DEF</strong></div>
+            </div>
+        </div>
 
-    st.subheader(f"スコア: {score} / 10")
-    if score >= 8: st.balloons()
-    if st.button("もう一度挑戦"): restart()
+        <div class="flex">
+            <button onclick="work()">営業活動（資金を稼ぐ）</button>
+            <button onclick="upgradeDefense()">セキュリティ強化（防衛+50 / ￥500）</button>
+        </div>
+
+        <button onclick="generateShareLink()" style="background:#555; color:#fff; margin-top:15px;">同期用リンクを生成してコピー</button>
+        <div id="share-area" style="display:none;">
+            <p style="font-size:12px; margin-bottom:2px;">このURLを相手に渡すか、相手のURLをブラウザで開くと市場が繋がります：</p>
+            <div class="share-uri" id="share-url"></div>
+        </div>
+    </div>
+
+    <!-- 3. オンライン競合会社市場 -->
+    <div id="market-screen" class="card" style="display:none;">
+        <h2>世界の市場（競合他社一覧）</h2>
+        <p style="font-size:12px; color:#aaa;">※競合の防衛力を0にすると、その資産をすべて奪い取って買収できます。</p>
+        <ul id="market-list" class="market-list"></ul>
+    </div>
+</div>
+
+<script>
+    // ゲームデータ構造
+    let myCompany = { id: "", name: "", ceo: "", assets: 1000, defense: 100 };
+    let competitors = {};
+
+    // 初期化：URLパラメータから競合データを読み込む
+    window.onload = function() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has("data")) {
+            try {
+                const decoded = JSON.parse(decodeURIComponent(atob(params.get("data"))));
+                Object.keys(decoded).forEach(id => { competitors[id] = decoded[id]; });
+                updateMarketUI();
+            } catch(e) { console.error("データ同期失敗", e); }
+        }
+        
+        // ローカルストレージに既存の自社データがあれば復元
+        if (localStorage.getItem("my_company")) {
+            myCompany = JSON.parse(localStorage.getItem("my_company"));
+            showGame();
+        }
+    }
+
+    // 会社新規作成
+    function createCompany() {
+        const name = document.getElementById("company-name").value.trim();
+        const ceo = document.getElementById("ceo-name").value.trim();
+        if (!name || !ceo) return alert("会社名とCEO名を入力してください");
+
+        myCompany.id = "comp_" + Math.random().toString(36).substring(2, 9);
+        myCompany.name = name;
+        myCompany.ceo = ceo;
+        myCompany.assets = 1000;
+        myCompany.defense = 100;
+
+        saveAndRefresh();
+        showGame();
+    }
+
+    // 画面切り替え
+    function showGame() {
+        document.getElementById("setup-screen").style.display = "none";
+        document.getElementById("game-screen").style.display = "block";
+        document.getElementById("market-screen").style.display = "block";
+        updateUI();
+    }
+
+    // 自社データの保存とUI更新
+    function saveAndRefresh() {
+        localStorage.setItem("my_company", JSON.stringify(myCompany));
+        updateUI();
+    }
+
+    function updateUI() {
+        document.getElementById("display-company").innerText = myCompany.name;
+        document.getElementById("display-ceo").innerText = myCompany.ceo;
+        document.getElementById("display-assets").innerText = myCompany.assets.toLocaleString();
+        document.getElementById("display-defense").innerText = myCompany.defense;
+        
+        // 競合データリストに自分も常に最新状態で上書き
+        competitors[myCompany.id] = myCompany;
+        updateMarketUI();
+    }
+
+    // 営業活動（資金稼ぎ）
+    function work() {
+        const gain = Math.floor(Math.random() * 150) + 50; // 50〜200円獲得
+        myCompany.assets += gain;
+        saveAndRefresh();
+    }
+
+    // 防衛力強化
+    function upgradeDefense() {
+        if (myCompany.assets < 500) return alert("資金が足りません（500円必要）");
+        myCompany.assets -= 500;
+        myCompany.defense += 50;
+        saveAndRefresh();
+    }
+
+    // 市場（オンラインプレイヤー）の表示更新
+    function updateMarketUI() {
+        const listEl = document.getElementById("market-list");
+        listEl.innerHTML = "";
+
+        Object.keys(competitors).forEach(id => {
+            const comp = competitors[id];
+            if (id === myCompany.id) return; // 自分は除外
+
+            const li = document.createElement("li");
+            li.className = "market-item enemy";
+            li.innerHTML = `
+                <div>
+                    <strong>${comp.name}</strong> (CEO: ${comp.ceo})<br>
+                    資産: ￥${comp.assets.toLocaleString()} / 防衛力: ${comp.defense} DEF
+                </div>
+                <div>
+                    <button class="attack" onclick="attackCompany('${id}')">買収攻撃</button>
+                </div>
+            `;
+            listEl.appendChild(li);
+        });
+    }
+
+    // 競合への買収攻撃（資産の奪い合い）
+    function attackCompany(targetId) {
+        if (myCompany.assets < 300) return alert("攻撃資金が足りません（1回300円必要）");
+        
+        myCompany.assets -= 300;
+        const target = competitors[targetId];
+        const damage = Math.floor(Math.random() * 40) + 10; // 10〜50のダメージ
+
+        target.defense -= damage;
+
+        if (target.defense <= 0) {
+            // 買収成功：相手の資産を奪う
+            alert(`【買収成功！】 ${target.name} を完全に買収しました！相手の全資産 ￥${target.assets.toLocaleString()} を吸収します。`);
+            myCompany.assets += target.assets;
+            delete competitors[targetId]; // 市場から排除
+        } else {
+            alert(`${target.name} に買収攻撃を仕掛け、防衛力を ${damage} 削りました！ (残りDEF: ${target.defense})`);
+        }
+
+        saveAndRefresh();
+    }
+
+    // 他プレイヤーとデータを共有するためのURL生成
+    function generateShareLink() {
+        competitors[myCompany.id] = myCompany; // 最新の自分を同梱
+        const jsonStr = JSON.stringify(competitors);
+        const encodedData = btoa(encodeURIComponent(jsonStr));
+        
+        const shareUrl = window.location.origin + window.location.pathname + "?data=" + encodedData;
+        
+        document.getElementById("share-url").innerText = shareUrl;
+        document.getElementById("share-area").style.display = "block";
+        
+        // クリップボードにコピー
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            alert("同期用URLをクリップボードにコピーしました！これを友達に送ってブラウザで開いてもらってください。");
+        });
+    }
+</script>
+
+</body>
+</html>
