@@ -162,8 +162,8 @@
             }
         } catch(e) { console.error(e); }
 
-        if (localStorage.getItem("corp_wars_premium_v2")) {
-            const saved = JSON.parse(localStorage.getItem("corp_wars_premium_v2"));
+        if (localStorage.getItem("corp_wars_premium_v3")) {
+            const saved = JSON.parse(localStorage.getItem("corp_wars_premium_v3"));
             myCompany = saved.myCompany || myCompany;
             if(saved.staff) saved.staff.forEach((s, i) => { staffMaster[i].cost = s.cost; staffMaster[i].count = s.count; });
             if(saved.products) saved.products.forEach((p, i) => productMaster[i].done = p.done);
