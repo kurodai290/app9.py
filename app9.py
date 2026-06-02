@@ -173,7 +173,7 @@ else:
     with tab2:
         st.subheader("人材マネジメント")
         for s_id, staff in st.session_state.staff.items():
-            col_info, col_btn = st.columns([3, 1])
+            col_info, col_btn = st.columns([3, 1])  # 比率を明示的に指定して2列に分割
             with col_info:
                 st.markdown(f"**{staff['name']}** (現在: {staff['count']}名)<br><span style='color:#aaa;'>雇用コスト: ￥{staff['cost']:,} | 労働力: +{staff['power']}/秒</span>", unsafe_allow_html=True)
             with col_btn:
@@ -190,7 +190,7 @@ else:
     with tab3:
         st.subheader("プロダクト / イノベーション")
         for p_id, prod in st.session_state.products.items():
-            col_info, col_btn = st.columns([3, 1])
+            col_info, col_btn = st.columns([3, 1])  # 比率を明示的に指定して2列に分割
             with col_info:
                 status_txt = "【開発完了】" if prod["done"] else f"費用: ￥{prod['cost']:,}"
                 st.markdown(f"**{prod['name']}** ({status_txt})<br><span style='color:#aaa;'>生産力ボーナス: 全体労働力 {prod['multi']} 倍</span>", unsafe_allow_html=True)
@@ -235,7 +235,5 @@ else:
                 continue
             display_count += 1
             
-            col_c_info, col_c_btn = st.columns([3, 1])
+            col_c_info, col_c_btn = st.columns([3, 1])  # 比率を明示的に指定して2列に分割
             with col_c_info:
-                st.markdown(f"<strong style='color:#ff4444;'>{comp['name']}</strong> (CEO: {comp['ceo']})<br>資産: ￥{comp['assets']:,} | 株価: ￥{comp['stockPrice']:,} | 防衛力: {comp['defense']} DEF", unsafe_allow_html=True)
-            with col_c_btn:
