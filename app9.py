@@ -221,7 +221,6 @@ else:
                     st.session_state.assets -= 1500
                     damage = random.randint(20, 70) + (sum(s['count'] for s in st.session_state.staff.values()) * 2)
                     st.session_state.competitors[comp_id]["defense"] -= damage
-                    
                     if st.session_state.competitors[comp_id]["defense"] <= 0:
                         st.balloons()
                         st.success(f"🎉 {comp['name']} の買収に成功しました！資産 ￥{comp['assets']:,} を吸収します。")
