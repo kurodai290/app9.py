@@ -1,183 +1,246 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corporate Wars Premium</title>
-    <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #121212; color: #e0e0e0; margin: 0; padding: 15px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        h1 { color: #00ffcc; text-align: center; margin-bottom: 20px; font-size: 28px; text-shadow: 0 0 10px rgba(0,255,204,0.3); }
-        .nav-tabs { display: flex; flex-wrap: wrap; background: #1e1e1e; border-radius: 8px; padding: 5px; margin-bottom: 20px; border: 1px solid #333; }
-        .tab-btn { flex: 1; min-width: 120px; background: none; border: none; color: #aaa; padding: 12px; font-weight: bold; cursor: pointer; border-radius: 6px; transition: 0.2s; text-align: center; font-size: 14px; }
-        .tab-btn:hover { background: #2a2a2a; color: #fff; }
-        .tab-btn.active { background: #00ffcc; color: #121212; }
-        .card { background: #1e1e1e; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #2d2d2d; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .stat-box { background: #252525; padding: 15px; border-radius: 6px; border-left: 4px solid #00ffcc; }
-        .stat-box.stock { border-left-color: #ffcc00; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 4px; border: 1px solid #444; background: #252525; color: #fff; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 15px; }
-        .btn-success { background: #00ffcc; color: #121212; }
-        .btn-success:hover { background: #00cca3; }
-        .btn-primary { background: #007bff; color: #fff; }
-        .btn-primary:hover { background: #0056b3; }
-        .btn-danger { background: #ff4444; color: #fff; }
-        .btn-danger:hover { background: #cc3333; }
-        ul { list-style: none; padding: 0; margin: 0; }
-        .list-item { background: #252525; padding: 15px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
-        .page-content { display: none; }
-        .page-content.active { display: block; }
-        .share-box { background: #0a0a0a; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 11px; word-break: break-all; color: #00ffcc; margin-top: 10px; border: 1px solid #222; }
-    </style>
-</head>
-<body>
+import streamlit as st
+import random
+import time
+import base64
+import json
 
-<div class="container">
-    <h1>Corporate Wars Premium</h1>
+# 1. ページ設定とスタイル適用（ダークテーマ風）
+st.set_page_config(page_title="Corporate Wars Premium", layout="wide")
 
-    <!-- 1. 会社設立画面（ここを1番上に配置し、エラーの原因になる余計な条件分岐を廃止） -->
-    <div id="setup-screen" class="card">
-        <h2>🏢 新規企業の創立登記申請</h2>
-        <p style="font-size:13px; color:#aaa;">好きな会社名とあなたの名前を入力して、すぐ下の緑のボタンを押してください！</p>
-        <input type="text" id="company-name" placeholder="新しい会社名（例：サイバーコア株式会社）">
-        <input type="text" id="ceo-name" placeholder="代表取締役CEO（あなたの名前）">
-        <button class="btn-success" id="start-trigger" onclick="createCompany()">会社を設立して市場に参入する</button>
+st.markdown("""
+<style>
+    .reportview-container { background: #121212; color: #e0e0e0; }
+    h1 { color: #00ffcc !important; text-align: center; }
+    .stButton>button { width: 100%; border-radius: 4px; font-weight: bold; }
+</style>
+""", unsafe_allow_html=True)
 
-        <hr style="border-color:#333; margin:20px 0;">
-        
-        <button class="btn-primary" style="background:#333; color:#aaa;" onclick="toggleSyncPanel()">既存のマルチプレイ市場に参加する（コードをお持ちの方）</button>
-        <div id="sync-panel" style="display:none; margin-top:15px; padding:15px; background:#1a1a1a; border-radius:6px; border:1px solid #ffcc00;">
-            <p style="font-size:12px; color:#aaa; margin:0 0 8px 0;">ライバルから貰った「同期用データコード」を貼り付けて同期してください。</p>
-            <div style="display:flex; gap:10px;">
-                <input type="text" id="import-data-input" placeholder="データコードをここに貼り付け" style="margin:0;">
-                <button class="btn-primary" onclick="importData()">データを同期</button>
-            </div>
-        </div>
-    </div>
+st.title("🏢 Corporate Wars Premium (Pure Python Edition)")
 
-    <!-- 2. メインゲームインターフェース -->
-    <div id="main-interface" style="display: none;">
-        <div class="grid">
-            <div class="stat-box">
-                <span style="font-size:12px; color:#aaa;">自社総資産</span>
-                <div style="font-size:20px; font-weight:bold; color:#00ffcc;">￥<span id="header-assets">0</span></div>
-            </div>
-            <div class="stat-box stock">
-                <span style="font-size:12px; color:#aaa;">自社現在株価</span>
-                <div style="font-size:20px; font-weight:bold; color:#ffcc00;">￥<span id="header-stock">100</span></div>
-            </div>
-            <div class="stat-box" style="border-left-color: #ff4444;">
-                <span style="font-size:12px; color:#aaa;">社員数 / 生産力</span>
-                <div style="font-size:20px; font-weight:bold;"><span id="header-staff">0</span> 名 / <span id="header-power">0</span>/秒</div>
-            </div>
-        </div>
-
-        <div class="nav-tabs">
-            <button class="tab-btn active" onclick="switchPage('concept')">🏢 自社概念</button>
-            <button class="tab-btn" onclick="switchPage('staff')">👥 社員雇用</button>
-            <button class="tab-btn" onclick="switchPage('product')">🧪 新商品開発</button>
-            <button class="tab-btn" onclick="switchPage('stock')">📈 株価専用窓口</button>
-            <button class="tab-btn" onclick="switchPage('records')">⚔️ 世界の市場記録</button>
-        </div>
-
-        <!-- 自社概念 -->
-        <div id="page-concept" class="page-content active">
-            <div class="card">
-                <h2>企業アイデンティティ</h2>
-                <p><strong>会社名:</strong> <span id="concept-name">---</span></p>
-                <p><strong>最高経営責任者 (CEO):</strong> <span id="concept-ceo">---</span></p>
-                <p><strong>セキュリティ防衛力:</strong> <span id="concept-defense">100</span> DEF</p>
-                <hr style="border-color:#333; margin:20px 0;">
-                <h3>経営アクション</h3>
-                <div class="grid">
-                    <button class="btn-primary" onclick="manualWork()">社長自ら営業活動を行う (+￥100)</button>
-                    <button class="btn-success" onclick="upgradeDefense()">防衛セキュリティを強化 (-￥1,000 / +100 DEF)</button>
-                </div>
-            </div>
-            <div class="card" style="border-color:#ffcc00;">
-                <h3>🤝 マルチプレイ同期（ライバルを招待する）</h3>
-                <p style="font-size:12px; color:#aaa;">下のボタンを押すと最新のデータコードが生成されます。これをライバルに送ってください。</p>
-                <button class="btn-primary" style="background:#555;" onclick="generateSyncLink()">同期用データコードを発行・表示</button>
-                <div class="share-box" id="share-url">データコードはここに生成されます</div>
-                
-                <p style="font-size:12px; color:#aaa; margin:15px 0 5px 0;">既存の市場にライバルを追加インポートする場合：</p>
-                <div style="display:flex; gap:10px;">
-                    <input type="text" id="import-data-input-active" placeholder="追加するライバルのコードを貼り付け" style="margin:0;">
-                    <button class="btn-primary" onclick="importDataActive()" style="width:120px; margin:0;">追加同期</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 社員雇用 -->
-        <div id="page-staff" class="page-content">
-            <div class="card">
-                <h2>人材マネジメント（自動資産生成）</h2>
-                <ul id="staff-list"></ul>
-            </div>
-        </div>
-
-        <!-- 新商品開発 -->
-        <div id="page-product" class="page-content">
-            <div class="card">
-                <h2>プロダクト・イノベーション</h2>
-                <ul id="product-list"></ul>
-            </div>
-        </div>
-
-        <!-- 株価専用ページ -->
-        <div id="page-stock" class="page-content">
-            <div class="card">
-                <h2>証券取引レイアウト</h2>
-                <div class="grid" style="margin-top:20px;">
-                    <div style="background:#111; padding:20px; border-radius:6px; text-align:center;">
-                        <span style="font-size:13px; color:#999;">時価総額評価</span>
-                        <div style="font-size:24px; color:#ffcc00; font-weight:bold; margin-top:5px;">￥<span id="stock-market-cap">0</span></div>
-                    </div>
-                    <div style="background:#111; padding:20px; border-radius:6px; text-align:center;">
-                        <span style="font-size:13px; color:#999;">企業格付ランク</span>
-                        <div style="font-size:24px; color:#00ffcc; font-weight:bold; margin-top:5px;" id="stock-rank">E</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 世界の市場記録 -->
-        <div id="page-records" class="page-content">
-            <div class="card">
-                <h2>グローバルマーケット・レコード</h2>
-                <ul id="market-list"></ul>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    // ブラウザセキュリティによる動作拒否を防ぐため、データをメモリ上に完全独立
-    let myCompany = {
-        id: "corp_id_" + Math.floor(Math.random() * 899999 + 100000), 
-        name: "", ceo: "", assets: 2000, defense: 100,
-        staffCount: 0, autoPower: 0, stockPrice: 100, productLevel: 0
-    };
-    let competitors = {};
-
-    const staffMaster = [
-        { id: "intern", name: "インターン生", cost: 500, power: 5, count: 0 },
-        { id: "engineer", name: "シニアエンジニア", cost: 3000, power: 40, count: 0 },
-        { id: "sales", name: "敏腕営業マン", cost: 15000, power: 250, count: 0 },
-        { id: "ai", name: "生成AI自動エージェント", cost: 80000, power: 1800, count: 0 }
-    ];
-
-    const productMaster = [
-        { id: "app", name: "暇つぶしSNSアプリ開発", cost: 5000, multi: 1.2, done: false },
-        { id: "ec", name: "次世代ECモール構築", cost: 35000, multi: 1.5, done: false },
-        { id: "ev", name: "自動運転空飛ぶクルマ開発", cost: 250000, multi: 2.5, done: false }
-    ];
-
-    // 起動時の初期化（エラーになりやすい複雑な外部URLチェックやローカルストレージ自動ロードをすべて廃止）
-    window.onload = function() {
-        setInterval(gameTick, 1000);
+# 2. セッション状態（ゲームデータ）の初期化
+if "company_id" not in st.session_state:
+    st.session_state.company_id = ""
+if "company_name" not in st.session_state:
+    st.session_state.company_name = ""
+if "ceo_name" not in st.session_state:
+    st.session_state.ceo_name = ""
+if "assets" not in st.session_state:
+    st.session_state.assets = 2000
+if "defense" not in st.session_state:
+    st.session_state.defense = 100
+if "staff" not in st.session_state:
+    st.session_state.staff = {
+        "intern": {"name": "インターン生", "cost": 500, "power": 5, "count": 0},
+        "engineer": {"name": "シニアエンジニア", "cost": 3000, "power": 40, "count": 0},
+        "sales": {"name": "敏腕営業マン", "cost": 15000, "power": 250, "count": 0},
+        "ai": {"name": "生成AI自動エージェント", "cost": 80000, "power": 1800, "count": 0}
     }
+if "products" not in st.session_state:
+    st.session_state.products = {
+        "app": {"name": "暇つぶしSNSアプリ開発", "cost": 5000, "multi": 1.2, "done": False},
+        "ec": {"name": "次世代ECモール構築", "cost": 35000, "multi": 1.5, "done": False},
+        "ev": {"name": "自動運転空飛ぶクルマ開発", "cost": 250000, "multi": 2.5, "done": False}
+    }
+if "competitors" not in st.session_state:
+    st.session_state.competitors = {}
+if "last_tick" not in st.session_state:
+    st.session_state.last_tick = time.time()
 
-    function toggleSyncPanel() {
-        const panel = document.getElementById("sync-panel");
+# 3. バックグラウンド時間経過処理（手動アクション時やリロード時に資産を自動計算）
+current_time = time.time()
+elapsed_seconds = int(current_time - st.session_state.last_tick)
+
+if elapsed_seconds > 0 and st.session_state.company_name:
+    # 生産力の計算
+    base_power = sum(s["count"] * s["power"] for s in st.session_state.staff.values())
+    multiplier = 1.0
+    for p in st.session_state.products.values():
+        if p["done"]:
+            multiplier *= p["multi"]
+    auto_power = int(base_power * multiplier)
+    
+    # 資産の加算
+    st.session_state.assets += auto_power * elapsed_seconds
+    st.session_state.last_tick = current_time
+
+# --- 画面描画ロジック ---
+
+# 【未ログイン状態：会社設立・コード同期】
+if not st.session_state.company_name:
+    st.subheader("新規企業の創立登記申請")
+    st.info("初めてプレイする方は、ここから自分の会社を設立してスタートしてください。")
+    
+    input_corp = st.text_input("新しい会社名（例：サイバーコア株式会社）", key="init_corp")
+    input_ceo = st.text_input("代表取締役CEO（あなたの名前）", key="init_ceo")
+    
+    if st.button("会社を設立して市場に参入する", type="primary"):
+        if input_corp.strip() and input_ceo.strip():
+            st.session_state.company_id = f"corp_{random.randint(100000, 999999)}"
+            st.session_state.company_name = input_corp.strip()
+            st.session_state.ceo_name = input_ceo.strip()
+            st.session_state.last_tick = time.time()
+            st.rerun()
+        else:
+            st.error("会社名とCEO名を入力してください。")
+            
+    st.markdown("---")
+    with st.expander("🤝 既存のマルチプレイ市場に参加する（同期コードをお持ちの方）"):
+        sync_code = st.text_input("ライバルから貰った「同期用データコード」を貼り付けてください")
+        if st.button("データを同期して合流"):
+            if sync_code.strip():
+                try:
+                    decoded = json.loads(base64.b64decode(sync_code.strip()).decode('utf-8'))
+                    st.session_state.competitors.update(decoded)
+                    st.success("ライバルの市場データを同期しました！会社設立後に「世界の市場記録」を確認してください。")
+                except Exception:
+                    st.error("データの同期に失敗しました。コードが正しいか確認してください。")
+
+# 【ログイン状態：メインゲーム画面】
+else:
+    # ヘッダー簡易ステータス
+    base_power = sum(s["count"] * s["power"] for s in st.session_state.staff.values())
+    multiplier = 1.0
+    for p in st.session_state.products.values():
+        if p["done"]:
+            multiplier *= p["multi"]
+    auto_power = int(base_power * multiplier)
+    
+    # 株価シミュレーション（簡易計算）
+    stock_base = (st.session_state.assets * 0.05) + (sum(s["count"] for s in st.session_state.staff.values()) * 50) + (sum(1 for p in st.session_state.products.values() if p["done"]) * 1000)
+    stock_price = max(10, int(stock_base * random.uniform(0.97, 1.03)))
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric(label="自社総資産", value=f"￥{st.session_state.assets:,}")
+    with col2:
+        st.metric(label="自社現在株価", value=f"￥{stock_price:,}")
+    with col3:
+        st.metric(label="社員数 / 生産力", value=f"{sum(s['count'] for s in st.session_state.staff.values())} 名 / {auto_power:,}秒")
+        
+    # タブメニュー（ページ分け機能）
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🏢 自社概念", "👥 社員雇用", "🧪 新商品開発", "📈 株価専用窓口", "⚔️ 世界の市場記録"])
+    
+    # PAGE 1: 自社概念
+    with tab1:
+        st.subheader("企業アイデンティティ")
+        st.write(f"**会社名:** {st.session_state.company_name}")
+        st.write(f"**最高経営責任者 (CEO):** {st.session_state.ceo_name}")
+        st.write(f"**セキュリティ防衛力:** {st.session_state.defense} DEF")
+        
+        st.markdown("### 経営アクション")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            if st.button("社長自ら営業活動を行う (+￥100)"):
+                st.session_state.assets += 100
+                st.rerun()
+        with c2:
+            if st.button("セキュリティを強化 (-￥1,000 / +100 DEF)"):
+                if st.session_state.assets >= 1000:
+                    st.session_state.assets -= 1000
+                    st.session_state.defense += 100
+                    st.rerun()
+                else:
+                    st.error("資金が不足しています。")
+        with c3:
+            if st.button("画面をリロード（時間を進めて売上回収）"):
+                st.rerun()
+                
+        st.markdown("---")
+        st.subheader("🤝 マルチプレイ同期（ライバルを招待）")
+        st.write("下のボタンを押すと最新のデータコードが出現します。これをコピーしてライバルに渡してください。")
+        
+        # 自分のデータをエクスポート用オブジェクトにまとめる
+        my_data = {
+            st.session_state.company_id: {
+                "name": st.session_state.company_name,
+                "ceo": st.session_state.ceo_name,
+                "assets": st.session_state.assets,
+                "defense": st.session_state.defense,
+                "stockPrice": stock_price
+            }
+        }
+        # 他社データもマージして包括コードにする
+        my_data.update(st.session_state.competitors)
+        encoded_data = base64.b64encode(json.dumps(my_data).encode('utf-8')).decode('utf-8')
+        
+        st.text_area("あなたの市場データコード（コピーして共有してください）", value=encoded_data, height=100)
+        
+        st.markdown("### ライバルのコードを追加インポートする")
+        active_sync_code = st.text_input("追加するライバルのコードを貼り付け", key="active_sync")
+        if st.button("追加同期を実行"):
+            if active_sync_code.strip():
+                try:
+                    decoded = json.loads(base64.b64decode(active_sync_code.strip()).decode('utf-8'))
+                    st.session_state.competitors.update(decoded)
+                    st.success("ライバルデータをインポートしました！「世界の市場記録」を確認してください。")
+                    st.rerun()
+                except Exception:
+                    st.error("同期に失敗しました。")
+
+    # PAGE 2: 社員雇用
+    with tab2:
+        st.subheader("人材マネジメント（自動資産生成）")
+        for s_id, staff in st.session_state.staff.items():
+            col_info, col_btn = st.columns([3, 1])
+            with col_info:
+                st.markdown(f"**{staff['name']}** (現在: {staff['count']}名)<br><span style='color:#aaa;'>雇用コスト: ￥{staff['cost']:,} | 労働力: +{staff['power']}/秒</span>", unsafe_allow_html=True)
+            with col_btn:
+                if st.button(f"雇用する", key=f"buy_{s_id}"):
+                    if st.session_state.assets >= staff["cost"]:
+                        st.session_state.assets -= staff["cost"]
+                        st.session_state.staff[s_id]["count"] += 1
+                        st.session_state.staff[s_id]["cost"] = int(staff["cost"] * 1.15)
+                        st.rerun()
+                    else:
+                        st.error("資金が不足しています。")
+
+    # PAGE 3: 新商品開発
+    with tab3:
+        st.subheader("プロダクト / イノベーション")
+        for p_id, prod in st.session_state.products.items():
+            col_info, col_btn = st.columns([3, 1])
+            with col_info:
+                status_txt = "【開発完了】" if prod["done"] else f"費用: ￥{prod['cost']:,}"
+                st.markdown(f"**{prod['name']}** ({status_txt})<br><span style='color:#aaa;'>生産力ボーナス: 全体労働力 {prod['multi']} 倍</span>", unsafe_allow_html=True)
+            with col_btn:
+                if prod["done"]:
+                    st.write("✅ 投資済み")
+                else:
+                    if st.button(f"開発投資", key=f"prod_{p_id}"):
+                        if st.session_state.assets >= prod["cost"]:
+                            st.session_state.assets -= prod["cost"]
+                            st.session_state.products[p_id]["done"] = True
+                            st.rerun()
+                        else:
+                            st.error("資金が不足しています。")
+
+    # PAGE 4: 株価専用窓口
+    with tab4:
+        st.subheader("証券取引・企業価値レイアウト")
+        st.write("会社の「総資産」「社員数」「開発した商品数」に応じてリアルタイムに自動変動します。")
+        
+        market_cap = stock_price * 10000
+        rank = "E"
+        if stock_price > 5000: rank = "S"
+        elif stock_price > 2000: rank = "A"
+        elif stock_price > 1000: rank = "B"
+        elif stock_price > 500: rank = "C"
+        elif stock_price > 200: rank = "D"
+        
+        sc1, sc2 = st.columns(2)
+        with sc1:
+            st.metric(label="仮想時価総額評価", value=f"￥{market_cap:,}")
+        with sc2:
+            st.metric(label="企業格付ランク", value=rank)
+
+    # PAGE 5: 世界の市場記録
+    with tab5:
+        st.subheader("グローバルマーケット・レコード")
+        
+        display_count = 0
+        for comp_id, comp in list(st.session_state.competitors.items()):
+            if comp_id == st.session_state.company_id:
+                continue
+            display_count += 1
+            
+            col_c_info, col_c_btn = st.columns([3, 1])
