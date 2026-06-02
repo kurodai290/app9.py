@@ -4,12 +4,12 @@ import time
 import base64
 import json
 
-# 1. ページ設定とスタイル適用（ダークテーマ風）
+# 1. ページ設定とスタイル適用
 st.set_page_config(page_title="Corporate Wars Premium", layout="wide")
 
 st.markdown("""
 <style>
-    .reportview-container { background: #121212; color: #e0e0e0; }
+    body { background-color: #121212; color: #e0e0e0; }
     h1 { color: #00ffcc !important; text-align: center; }
     .stButton>button { width: 100%; border-radius: 4px; font-weight: bold; }
 </style>
@@ -46,26 +46,23 @@ if "competitors" not in st.session_state:
 if "last_tick" not in st.session_state:
     st.session_state.last_tick = time.time()
 
-# 3. バックグラウンド時間経過処理（手動アクション時やリロード時に資産を自動計算）
+# 3. バックグラウンド時間経過処理
 current_time = time.time()
 elapsed_seconds = int(current_time - st.session_state.last_tick)
 
 if elapsed_seconds > 0 and st.session_state.company_name:
-    # 生産力の計算
     base_power = sum(s["count"] * s["power"] for s in st.session_state.staff.values())
     multiplier = 1.0
     for p in st.session_state.products.values():
         if p["done"]:
             multiplier *= p["multi"]
     auto_power = int(base_power * multiplier)
-    
-    # 資産の加算
     st.session_state.assets += auto_power * elapsed_seconds
     st.session_state.last_tick = current_time
 
 # --- 画面描画ロジック ---
 
-# 【未ログイン状態：会社設立・コード同期】
+# 【未ログイン状態】
 if not st.session_state.company_name:
     st.subheader("新規企業の創立登記申請")
     st.info("初めてプレイする方は、ここから自分の会社を設立してスタートしてください。")
@@ -97,7 +94,6 @@ if not st.session_state.company_name:
 
 # 【ログイン状態：メインゲーム画面】
 else:
-    # ヘッダー簡易ステータス
     base_power = sum(s["count"] * s["power"] for s in st.session_state.staff.values())
     multiplier = 1.0
     for p in st.session_state.products.values():
@@ -105,7 +101,6 @@ else:
             multiplier *= p["multi"]
     auto_power = int(base_power * multiplier)
     
-    # 株価シミュレーション（簡易計算）
     stock_base = (st.session_state.assets * 0.05) + (sum(s["count"] for s in st.session_state.staff.values()) * 50) + (sum(1 for p in st.session_state.products.values() if p["done"]) * 1000)
     stock_price = max(10, int(stock_base * random.uniform(0.97, 1.03)))
     
@@ -117,7 +112,6 @@ else:
     with col3:
         st.metric(label="社員数 / 生産力", value=f"{sum(s['count'] for s in st.session_state.staff.values())} 名 / {auto_power:,}秒")
         
-    # タブメニュー（ページ分け機能）
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["🏢 自社概念", "👥 社員雇用", "🧪 新商品開発", "📈 株価専用窓口", "⚔️ 世界の市場記録"])
     
     # PAGE 1: 自社概念
@@ -147,9 +141,8 @@ else:
                 
         st.markdown("---")
         st.subheader("🤝 マルチプレイ同期（ライバルを招待）")
-        st.write("下のボタンを押すと最新のデータコードが出現します。これをコピーしてライバルに渡してください。")
+        st.write("下のボックスの暗号コードをコピーしてライバルに渡してください。")
         
-        # 自分のデータをエクスポート用オブジェクトにまとめる
         my_data = {
             st.session_state.company_id: {
                 "name": st.session_state.company_name,
@@ -159,7 +152,6 @@ else:
                 "stockPrice": stock_price
             }
         }
-        # 他社データもマージして包括コードにする
         my_data.update(st.session_state.competitors)
         encoded_data = base64.b64encode(json.dumps(my_data).encode('utf-8')).decode('utf-8')
         
@@ -172,16 +164,16 @@ else:
                 try:
                     decoded = json.loads(base64.b64decode(active_sync_code.strip()).decode('utf-8'))
                     st.session_state.competitors.update(decoded)
-                    st.success("ライバルデータをインポートしました！「世界の市場記録」を確認してください。")
+                    st.success("ライバルデータをインポートしました！")
                     st.rerun()
                 except Exception:
                     st.error("同期に失敗しました。")
 
     # PAGE 2: 社員雇用
     with tab2:
-        st.subheader("人材マネジメント（自動資産生成）")
+        st.subheader("人材マネジメント")
         for s_id, staff in st.session_state.staff.items():
-            col_info, col_btn = st.columns([3, 1])  # 画面分割数を[3, 1]に正しく指定
+            col_info, col_btn = st.columns([3, 1])
             with col_info:
                 st.markdown(f"**{staff['name']}** (現在: {staff['count']}名)<br><span style='color:#aaa;'>雇用コスト: ￥{staff['cost']:,} | 労働力: +{staff['power']}/秒</span>", unsafe_allow_html=True)
             with col_btn:
@@ -198,7 +190,7 @@ else:
     with tab3:
         st.subheader("プロダクト / イノベーション")
         for p_id, prod in st.session_state.products.items():
-            col_info, col_btn = st.columns([3, 1])  # 画面分割数を[3, 1]に正しく指定
+            col_info, col_btn = st.columns([3, 1])
             with col_info:
                 status_txt = "【開発完了】" if prod["done"] else f"費用: ￥{prod['cost']:,}"
                 st.markdown(f"**{prod['name']}** ({status_txt})<br><span style='color:#aaa;'>生産力ボーナス: 全体労働力 {prod['multi']} 倍</span>", unsafe_allow_html=True)
@@ -217,7 +209,7 @@ else:
     # PAGE 4: 株価専用窓口
     with tab4:
         st.subheader("証券取引・企業価値レイアウト")
-        st.write("会社の「総資産」「社員数」「開発した商品数」に応じてリアルタイムに自動変動します。")
+        st.write("会社の業績に応じてリアルタイムに自動変動します。")
         
         market_cap = stock_price * 10000
         rank = "E"
@@ -243,3 +235,7 @@ else:
                 continue
             display_count += 1
             
+            col_c_info, col_c_btn = st.columns([3, 1])
+            with col_c_info:
+                st.markdown(f"<strong style='color:#ff4444;'>{comp['name']}</strong> (CEO: {comp['ceo']})<br>資産: ￥{comp['assets']:,} | 株価: ￥{comp['stockPrice']:,} | 防衛力: {comp['defense']} DEF", unsafe_allow_html=True)
+            with col_c_btn:
