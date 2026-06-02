@@ -36,23 +36,28 @@
 <div class="container">
     <h1>Corporate Wars Premium</h1>
 
-    <!-- 他社データ読み込み用窓口（ログイン前にも表示） -->
-    <div class="card" style="border-color: #ffcc00;">
-        <h3>🔗 マルチプレイ：ライバルのデータを同期する</h3>
-        <p style="font-size:12px; color:#aaa; margin:0 0 8px 0;">友達から貰った同期用データコード（長い英数字）をここに貼り付けて同期ボタンを押してください。</p>
-        <div style="display:flex; gap:10px;">
-            <input type="text" id="import-data-input" placeholder="ここに同期データコードを貼り付け" style="margin:0;">
-            <button class="btn-primary" onclick="importData()" style="width:120px; margin:0;">データを同期</button>
-        </div>
-    </div>
-
+    <!-- 1. 初期ログイン・会社設立画面 -->
     <div id="setup-screen" class="card">
-        <h2>創立登記申請</h2>
+        <h2>🏢 新規企業の創立登記申請</h2>
+        <p style="font-size:13px; color:#aaa;">初めてプレイする方は、ここから自分の会社を設立してスタートできます！（同期コードは不要です）</p>
         <input type="text" id="company-name" placeholder="新しい会社名（例：サイバーコア株式会社）">
         <input type="text" id="ceo-name" placeholder="代表取締役CEO（あなたの名前）">
         <button class="btn-success" onclick="createCompany()">会社を設立して市場に参入する</button>
+
+        <hr style="border-color:#333; margin:20px 0;">
+        
+        <!-- マルチプレイ連携は折りたたみ式に変更 -->
+        <button class="btn-primary" style="background:#333; color:#aaa;" onclick="toggleSyncPanel()">既存のマルチプレイ市場に参加する（コードをお持ちの方）</button>
+        <div id="sync-panel" style="display:none; margin-top:15px; padding:15px; background:#1a1a1a; border-radius:6px; border:1px solid #ffcc00;">
+            <p style="font-size:12px; color:#aaa; margin:0 0 8px 0;">ライバルから貰った「同期用データコード」を貼り付けて同期してください。</p>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="import-data-input" placeholder="データコードをここに貼り付け" style="margin:0;">
+                <button class="btn-primary" onclick="importData()" style="width:120px; margin:0;">データを同期</button>
+            </div>
+        </div>
     </div>
 
+    <!-- 2. メインゲームインターフェース -->
     <div id="main-interface" style="display: none;">
         <div class="grid">
             <div class="stat-box">
@@ -91,11 +96,18 @@
                     <button class="btn-success" onclick="upgradeDefense()">防衛セキュリティを強化 (-￥1,000 / +100 DEF)</button>
                 </div>
             </div>
-            <div class="card">
-                <h3>マルチプレイ同期・データコードの発行</h3>
-                <p style="font-size:12px; color:#aaa;">下のボタンを押すと、あなたの会社の最新データコードがコピーされます。これをライバルに送って、画面上の黄色い枠に貼り付けてもらってください。</p>
+            <div class="card" style="border-color:#ffcc00;">
+                <h3>🤝 マルチプレイ同期（ライバルを招待する）</h3>
+                <p style="font-size:12px; color:#aaa;">下のボタンを押すと、あなたの会社の最新データコードがコピーされます。これをライバルに送って、相手のログイン画面にある同期枠に貼り付けてもらってください。</p>
                 <button class="btn-primary" style="background:#555;" onclick="generateSyncLink()">同期用データコードを発行・コピー</button>
                 <div class="share-box" id="share-url">データコードはここに生成されます</div>
+                
+                <!-- ログイン後も追加でコードを読み込めるように設置 -->
+                <p style="font-size:12px; color:#aaa; margin:15px 0 5px 0;">既存の市場にライバルを追加インポートする場合：</p>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="import-data-input-active" placeholder="追加するライバルのコードを貼り付け" style="margin:0;">
+                    <button class="btn-primary" onclick="importDataActive()" style="width:120px; margin:0;">追加同期</button>
+                </div>
             </div>
         </div>
 
@@ -163,30 +175,6 @@
     ];
 
     window.onload = function() {
-        // 安全のため、問題の起きていた親URLの自動取得処理を完全に廃止しました
-        if (localStorage.getItem("corp_wars_premium_v4")) {
-            const saved = JSON.parse(localStorage.getItem("corp_wars_premium_v4"));
+        if (localStorage.getItem("corp_wars_premium_v5")) {
+            const saved = JSON.parse(localStorage.getItem("corp_wars_premium_v5"));
             myCompany = saved.myCompany || myCompany;
-            if(saved.staff) saved.staff.forEach((s, i) => { staffMaster[i].cost = s.cost; staffMaster[i].count = s.count; });
-            if(saved.products) saved.products.forEach((p, i) => productMaster[i].done = p.done);
-            showMainInterface();
-        }
-        setInterval(gameTick, 1000);
-    }
-
-    // 他社データのインポート関数（手動貼り付け方式に変更）
-    function importData() {
-        const rawCode = document.getElementById("import-data-input").value.trim();
-        if(!rawCode) return alert("データコードを入力してください。");
-        try {
-            const decoded = JSON.parse(decodeURIComponent(atob(rawCode)));
-            Object.keys(decoded).forEach(id => { competitors[id] = decoded[id]; });
-            alert("ライバルの市場データを同期しました！「世界の市場記録」タブを確認してください。");
-            updateUI();
-        } catch(e) {
-            alert("データの同期に失敗しました。正しいコードか確認してください。");
-            console.error(e);
-        }
-    }
-
-    function createCompany() {
