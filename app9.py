@@ -4,9 +4,8 @@ import streamlit.components.v1 as components
 # Streamlitのページ設定
 st.set_page_config(page_title="Corporate Wars Premium", layout="wide")
 
-# HTML / CSS / JavaScript の統合ゲームコード
-html_code = """
-<!DOCTYPE html>
+# JavaScript内の特殊文字バグを防ぐため、安全なプレーンテキストとして定義
+html_code = """<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
@@ -16,21 +15,15 @@ html_code = """
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #121212; color: #e0e0e0; margin: 0; padding: 15px; }
         .container { max-width: 1000px; margin: 0 auto; }
         h1 { color: #00ffcc; text-align: center; margin-bottom: 20px; font-size: 28px; text-shadow: 0 0 10px rgba(0,255,204,0.3); }
-        
-        /* タブ（ページ分け）ナビゲーション */
         .nav-tabs { display: flex; flex-wrap: wrap; background: #1e1e1e; border-radius: 8px; padding: 5px; margin-bottom: 20px; border: 1px solid #333; }
         .tab-btn { flex: 1; min-width: 120px; background: none; border: none; color: #aaa; padding: 12px; font-weight: bold; cursor: pointer; border-radius: 6px; transition: 0.2s; text-align: center; font-size: 14px; }
         .tab-btn:hover { background: #2a2a2a; color: #fff; }
         .tab-btn.active { background: #00ffcc; color: #121212; }
-
-        /* カードデザイン */
         .card { background: #1e1e1e; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #2d2d2d; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .stat-box { background: #252525; padding: 15px; border-radius: 6px; border-left: 4px solid #00ffcc; }
         .stat-box.stock { border-left-color: #ffcc00; }
-        
-        /* フォーム・ボタン */
-        input, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 4px; border: 1px solid #444; background: #252525; color: #fff; box-sizing: border-box; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 4px; border: 1px solid #444; background: #252525; color: #fff; box-sizing: border-box; font-size: 16px; }
         button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 15px; }
         .btn-success { background: #00ffcc; color: #121212; }
         .btn-success:hover { background: #00cca3; }
@@ -38,15 +31,10 @@ html_code = """
         .btn-primary:hover { background: #0056b3; }
         .btn-danger { background: #ff4444; color: #fff; }
         .btn-danger:hover { background: #cc3333; }
-
-        /* リストスタイル */
         ul { list-style: none; padding: 0; margin: 0; }
         .list-item { background: #252525; padding: 15px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
-        
-        /* ページコンテンツ制御 */
         .page-content { display: none; }
         .page-content.active { display: block; }
-        
         .share-box { background: #0a0a0a; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 11px; word-break: break-all; color: #00ffcc; margin-top: 10px; border: 1px solid #222; }
     </style>
 </head>
@@ -55,7 +43,6 @@ html_code = """
 <div class="container">
     <h1>Corporate Wars Premium</h1>
 
-    <!-- 会社設立画面（未設立時のみ表示） -->
     <div id="setup-screen" class="card">
         <h2>創立登記申請</h2>
         <input type="text" id="company-name" placeholder="新しい会社名（例：サイバーコア株式会社）">
@@ -63,10 +50,7 @@ html_code = """
         <button class="btn-success" onclick="createCompany()">会社を設立して市場に参入する</button>
     </div>
 
-    <!-- メインゲームインターフェース -->
     <div id="main-interface" style="display: none;">
-        
-        <!-- ヘッダー簡易ステータス（常に上に表示） -->
         <div class="grid">
             <div class="stat-box">
                 <span style="font-size:12px; color:#aaa;">自社総資産</span>
@@ -82,7 +66,6 @@ html_code = """
             </div>
         </div>
 
-        <!-- ページ（タブ）切り替えメニュー -->
         <div class="nav-tabs">
             <button class="tab-btn active" onclick="switchPage('concept')">🏢 自社概念</button>
             <button class="tab-btn" onclick="switchPage('staff')">👥 社員雇用</button>
@@ -91,14 +74,13 @@ html_code = """
             <button class="tab-btn" onclick="switchPage('records')">⚔️ 世界の市場記録</button>
         </div>
 
-        <!-- PAGE 1: 自社概念（マイページ） -->
+        <!-- 自社概念 -->
         <div id="page-concept" class="page-content active">
             <div class="card">
                 <h2>企業アイデンティティ</h2>
                 <p><strong>会社名:</strong> <span id="concept-name">---</span></p>
                 <p><strong>最高経営責任者 (CEO):</strong> <span id="concept-ceo">---</span></p>
                 <p><strong>セキュリティ防衛力:</strong> <span id="concept-defense">100</span> DEF</p>
-                
                 <hr style="border-color:#333; margin:20px 0;">
                 <h3>経営アクション</h3>
                 <div class="grid">
@@ -106,45 +88,33 @@ html_code = """
                     <button class="btn-success" onclick="upgradeDefense()">防衛セキュリティを強化 (-￥1,000 / +100 DEF)</button>
                 </div>
             </div>
-            
             <div class="card">
                 <h3>マルチプレイ同期・リアルタイム連携</h3>
-                <p style="font-size:13px; color:#aaa;">このゲームはURLを共有することでリアルタイム（秒間更新）で同じ市場に接続できます。データを更新したら下のリンクをコピーして相手に渡してください。</p>
                 <button class="btn-primary" style="background:#555;" onclick="generateSyncLink()">同期用データリンクを発行・コピー</button>
                 <div class="share-box" id="share-url">URLはここに生成されます</div>
             </div>
         </div>
 
-        <!-- PAGE 2: 社員雇用 -->
+        <!-- 社員雇用 -->
         <div id="page-staff" class="page-content">
             <div class="card">
                 <h2>人材マネジメント（自動資産生成）</h2>
-                <p style="font-size:13px; color:#aaa;">優秀な社員を雇うことで、社長が何もしなくても「1秒ごと」に資産が自動で増え続けます。</p>
-                
-                <ul id="staff-list">
-                    <!-- JavaScriptで動的生成 -->
-                </ul>
+                <ul id="staff-list"></ul>
             </div>
         </div>
 
-        <!-- PAGE 3: 新商品開発 -->
+        <!-- 新商品開発 -->
         <div id="page-product" class="page-content">
             <div class="card">
                 <h2>プロダクト・イノベーション</h2>
-                <p style="font-size:13px; color:#aaa;">最先端の商品を開発すると、会社のブランド価値が上がり、**1秒あたりの自動売上が一気に跳ね上がります**。</p>
-                
-                <ul id="product-list">
-                    <!-- JavaScriptで動的生成 -->
-                </ul>
+                <ul id="product-list"></ul>
             </div>
         </div>
 
-        <!-- PAGE 4: 株価専用ページ -->
+        <!-- 株価専用ページ -->
         <div id="page-stock" class="page-content">
             <div class="card">
                 <h2>証券取引レイアウト</h2>
-                <p style="font-size:13px; color:#aaa;">あなたの会社の株価は、**「総資産の多さ」「社員の数」「開発した商品数」**によってリアルタイムに自動変動します。業績を上げ、大企業になって株価1万円を目指しましょう。</p>
-                
                 <div class="grid" style="margin-top:20px;">
                     <div style="background:#111; padding:20px; border-radius:6px; text-align:center;">
                         <span style="font-size:13px; color:#999;">時価総額評価</span>
@@ -158,30 +128,23 @@ html_code = """
             </div>
         </div>
 
-        <!-- PAGE 5: 他の会社の記録（市場） -->
+        <!-- 世界の市場記録 -->
         <div id="page-records" class="page-content">
             <div class="card">
                 <h2>グローバルマーケット・レコード</h2>
-                <p style="font-size:13px; color:#aaa;">同じ共有リンクから参入した競合他社のリアルタイムデータです。資金を集めてライバル企業の防衛力を削り、敵の資産を全て奪い取る「M&A買収戦争」を仕掛けられます。</p>
-                
-                <ul id="market-list">
-                    <!-- JavaScriptで動的生成 -->
-                </ul>
+                <ul id="market-list"></ul>
             </div>
         </div>
-
     </div>
 </div>
 
 <script>
-    // --- 1. ゲームの基本データ管理 ---
     let myCompany = {
         id: "", name: "", ceo: "", assets: 2000, defense: 100,
         staffCount: 0, autoPower: 0, stockPrice: 100, productLevel: 0
     };
     let competitors = {};
 
-    // 雇用できる社員のマスターデータ
     const staffMaster = [
         { id: "intern", name: "インターン生", cost: 500, power: 5, count: 0 },
         { id: "engineer", name: "シニアエンジニア", cost: 3000, power: 40, count: 0 },
@@ -189,18 +152,49 @@ html_code = """
         { id: "ai", name: "生成AI自動エージェント", cost: 80000, power: 1800, count: 0 }
     ];
 
-    // 開発できる商品のマスターデータ
     const productMaster = [
         { id: "app", name: "暇つぶしSNSアプリ開発", cost: 5000, multi: 1.2, done: false },
-        { id: "ec", name: "次世代次世代ECモール構築", cost: 35000, multi: 1.5, done: false },
+        { id: "ec", name: "次世代ECモール構築", cost: 35000, multi: 1.5, done: false },
         { id: "ev", name: "自動運転空飛ぶクルマ開発", cost: 250000, multi: 2.5, done: false }
     ];
 
-    // --- 2. 初期化ルーチン (ロード処理) ---
     window.onload = function() {
-        // 親ウィンドウのURL（Streamlitのパラメータ）から他社レコードを解析
         const parentUrl = (window.location != window.parent.location) ? document.referrer : document.location.href;
         try {
             const urlObj = new URL(parentUrl);
             const params = urlObj.searchParams;
             if (params.has("data")) {
+                const decoded = JSON.parse(decodeURIComponent(atob(params.get("data"))));
+                Object.keys(decoded).forEach(id => { competitors[id] = decoded[id]; });
+            }
+        } catch(e) { console.error(e); }
+
+        if (localStorage.getItem("corp_wars_premium_v2")) {
+            const saved = JSON.parse(localStorage.getItem("corp_wars_premium_v2"));
+            myCompany = saved.myCompany || myCompany;
+            if(saved.staff) saved.staff.forEach((s, i) => staffMaster[i].cost = s.cost, staffMaster[i].count = s.count);
+            if(saved.products) saved.products.forEach((p, i) => productMaster[i].done = p.done);
+            showMainInterface();
+        }
+        setInterval(gameTick, 1000);
+    }
+
+    function createCompany() {
+        const name = document.getElementById("company-name").value.trim();
+        const ceo = document.getElementById("ceo-name").value.trim();
+        if (!name || !ceo) return alert("入力してください");
+        myCompany.id = "corp_" + Math.random().toString(36).substring(2, 10);
+        myCompany.name = name;
+        myCompany.ceo = ceo;
+        showMainInterface();
+        saveData();
+    }
+
+    function showMainInterface() {
+        document.getElementById("setup-screen").style.display = "none";
+        document.getElementById("main-interface").style.display = "block";
+        renderStaff();
+        renderProducts();
+        updateUI();
+    }
+
