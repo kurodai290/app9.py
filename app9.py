@@ -1,8 +1,6 @@
 import streamlit as st
 import random
 import time
-import base64
-import json
 
 # 1. ページ基本設定
 st.set_page_config(page_title="Corporate Wars Premium", layout="wide")
@@ -15,9 +13,20 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🏢 Corporate Wars Premium (Subsidiary Edition)")
+st.title("🏢 Corporate Wars Premium (Fully Online Cloud Edition)")
 
-# 2. セッションデータの初期化
+# =================================================================
+# 【最重要】全員で共有する「クラウド仮想市場データベース」の構築
+# =================================================================
+if "GLOBAL_MARKET_DATABASE" not in st.session_state.__class__.__dict__:
+    # 全セッション（全プレイヤー）で共有されるメモリ空間を物理的に確保
+    st.session_state.__class__.GLOBAL_MARKET_DATABASE = {}
+
+# ショートカット変数として定義
+GLOBAL_MARKET = st.session_state.__class__.GLOBAL_MARKET_DATABASE
+
+
+# 2. 個人セッションデータ（あなたのブラウザ用）の初期化
 if "company_id" not in st.session_state:
     st.session_state.company_id = ""
 if "company_name" not in st.session_state:
@@ -45,10 +54,9 @@ if "products" not in st.session_state:
         "ec": {"name": "次世代ECモール構築", "cost": 35000, "multi": 1.5, "done": False},
         "ev": {"name": "自動運転空飛ぶクルマ開発", "cost": 250000, "multi": 2.5, "done": False}
     }
-if "competitors" not in st.session_state:
-    st.session_state.competitors = {}
 if "last_tick" not in st.session_state:
     st.session_state.last_tick = time.time()
+
 
 # 3. 自動売上回収の計算
 current_time = time.time()
@@ -69,13 +77,54 @@ if elapsed > 0 and st.session_state.company_name:
     st.session_state.assets += final_power * elapsed
     st.session_state.last_tick = current_time
 
+
+# =================================================================
+# クラウドデータベースへのデータ同期関数
+# =================================================================
+def sync_to_cloud_market(stock_price_current):
+    if not st.session_state.company_name:
+        return
+    
+    # あなたの会社の最新状態をクラウド共有DBに強制上書き保存
+    GLOBAL_MARKET[st.session_state.company_id] = {
+        "name": st.session_state.company_name,
+        "ceo": st.session_state.ceo_name,
+        "assets": st.session_state.assets,
+        "defense": st.session_state.defense,
+        "stockPrice": stock_price_current,
+        "last_update": time.time()
+    }
+
+def sync_from_cloud_market():
+    # 自分がクラウド側で誰かに買収（DEFが0以下に）されていないかチェック
+    if st.session_state.company_id in GLOBAL_MARKET:
+        cloud_data = GLOBAL_MARKET[st.session_state.company_id]
+        if cloud_data["defense"] <= 0:
+            # 買収された通知を行い、会社データを初期化
+            st.error(f"🚨 【M&A警告】あなたの会社は競合他社によって完全に買収合併されました！資産がリセットされます。")
+            st.session_state.company_name = ""
+            st.session_state.ceo_name = ""
+            st.session_state.assets = 2000
+            st.session_state.defense = 100
+            st.session_state.debt = 0
+            st.session_state.subsidiaries = []
+            for s_id in st.session_state.staff: st.session_state.staff[s_id]["count"] = 0
+            for p_id in st.session_state.products: st.session_state.products[p_id]["done"] = False
+            if st.session_state.company_id in GLOBAL_MARKET:
+                del GLOBAL_MARKET[st.session_state.company_id]
+            st.rerun()
+        else:
+            # 相手から受けた防衛力（DEF）のダメージを自分の画面に同期
+            st.session_state.defense = cloud_data["defense"]
+
+
 # --- 4. 未ログイン画面（会社設立） ---
 if not st.session_state.company_name:
     st.subheader("新規企業の創立登記申請")
-    st.info("好きな会社名とあなたの名前を入力して、ゲームを開始してください。")
+    st.info("会社を設立すると、自動的に「共通オンライン市場」へ同期され、他のプレイヤーの画面にあなたの会社が勝手に出現します。コード交換は一切不要です！")
     
-    input_corp = st.text_input("新しい会社名", key="init_corp", placeholder="サイバーコア株式会社")
-    input_ceo = st.text_input("代表取締役CEO（あなたの名前）", key="init_ceo", placeholder="あなたの名前")
+    input_corp = st.text_input("新しい会社名", key="init_corp", placeholder="クリスタル株式会社")
+    input_ceo = st.text_input("代表取締役CEO（あなたの名前）", key="init_ceo", placeholder="クロダイ")
     
     if st.button("会社を設立して市場に参入する", type="primary"):
         if input_corp.strip() and input_ceo.strip():
@@ -83,24 +132,24 @@ if not st.session_state.company_name:
             st.session_state.company_name = input_corp.strip()
             st.session_state.ceo_name = input_ceo.strip()
             st.session_state.last_tick = time.time()
+            
+            # 設立した瞬間に市場へ自動エントリー
+            GLOBAL_MARKET[st.session_state.company_id] = {
+                "name": st.session_state.company_name,
+                "ceo": st.session_state.ceo_name,
+                "assets": st.session_state.assets,
+                "defense": st.session_state.defense,
+                "stockPrice": 100,
+                "last_update": time.time()
+            }
+            st.success("市場への自動登記が完了しました！")
             st.rerun()
         else:
             st.error("すべての項目を入力してください。")
-            
-    st.markdown("---")
-    with st.expander("🤝 既存のマルチプレイ市場に参加する（同期コードをお持ちの方）"):
-        sync_code = st.text_input("同期用データコードを貼り付けてください")
-        if st.button("データを同期して合流"):
-            if sync_code.strip():
-                try:
-                    decoded = json.loads(base64.b64decode(sync_code.strip()).decode('utf-8'))
-                    st.session_state.competitors.update(decoded)
-                    st.success("市場データを読み込みました！会社設立後に「世界の市場記録」を確認してください。")
-                except Exception:
-                    st.error("同期コードの解析に失敗しました。")
 
 # --- 5. メインゲーム画面 ---
 else:
+    # リアルタイムの生産力と株価の計算
     base_power = sum(s["count"] * s["power"] for s in st.session_state.staff.values())
     product_multiplier = 1.0
     for p in st.session_state.products.values():
@@ -118,111 +167,71 @@ else:
     stock_base = (net_assets * 0.05) + (sum(s["count"] for s in st.session_state.staff.values()) * 50) + (sum(1 for p in st.session_state.products.values() if p["done"]) * 1000)
     stock_price = max(10, int(stock_base * random.uniform(0.97, 1.03)))
     
+    # データの相互同期を走らせる
+    sync_from_cloud_market()
+    sync_to_cloud_market(stock_price)
+    
+    # 画面上部ステータス
     col1, col2, col3 = st.columns(3)
     col1.metric(label="自社総資産", value=f"￥{st.session_state.assets:,}")
     col2.metric(label="自社現在株価", value=f"￥{stock_price:,}")
     col3.metric(label="グループ社員数 / 総生産力", value=f"{sum(s['count'] for s in st.session_state.staff.values())} 名 / {auto_power:,}秒")
     
-    # 営業アクションを独立させた「8つのタブメニュー」
+    # タブメニュー
     tabs = st.tabs(["🏢 自社概念", "💼 営業アクション", "🏢 子会社管理", "👥 社員雇用", "🧪 新商品開発", "🏦 銀行窓口", "📈 株価専用窓口", "⚔️ 世界の市場記録"])
     
     # TAB 1: 自社概念
-    with tabs[0]:
+    with tabs:
         st.subheader("企業アイデンティティ")
         st.write(f"**会社名:** {st.session_state.company_name}（親会社）")
         st.write(f"**最高経営責任者 (CEO):** {st.session_state.ceo_name}")
+        st.write(f"**ユニーク企業ID:** `{st.session_state.company_id}`")
         st.write(f"**保有子会社数:** {len(st.session_state.subsidiaries)} 社")
         st.write(f"**セキュリティ防衛力:** {st.session_state.defense} DEF")
         st.write(f"**現在の借金残高:** ￥{st.session_state.debt:,}")
-        
-        st.markdown("---")
-        st.subheader("🤝 マルチプレイ同期（コード共有）")
-        my_data = {
-            st.session_state.company_id: {
-                "name": st.session_state.company_name,
-                "ceo": st.session_state.ceo_name,
-                "assets": st.session_state.assets,
-                "defense": st.session_state.defense,
-                "stockPrice": stock_price
-            }
-        }
-        my_data.update(st.session_state.competitors)
-        encoded_data = base64.b64encode(json.dumps(my_data).encode('utf-8')).decode('utf-8')
-        st.text_area("あなたのデータコード（ライバルに送ってください）", value=encoded_data, height=100)
-        
-        active_sync = st.text_input("追加するライバルのコードを貼り付け", key="active_sync")
-        if st.button("追加同期を実行"):
-            if active_sync.strip():
-                try:
-                    decoded = json.loads(base64.b64decode(active_sync.strip()).decode('utf-8'))
-                    st.session_state.competitors.update(decoded)
-                    st.success("ライバルデータを追加しました！")
-                    st.rerun()
-                except Exception:
-                    st.error("同期失敗")
+        st.success("🟢 あなたの会社はクラウド共有サーバーへリアルタイム同期されています。コードのやり取りは不要です。")
 
-    # ★ NEW TAB 2: 営業アクション（完全独立ページ）
-    with tabs[1]:
+    # TAB 2: 営業アクション
+    with tabs:
         st.subheader("💼 コアビジネス・経営コマンド")
-        st.write("社長としての直接的な経営介入や、時間を進めて社員の売上を回収するページです。")
-        
+        st.write("時間を進めて売上を回収したり、会社の基礎防衛力を固めるページです。")
         act_box = st.container(border=True)
-        act_box.markdown("### 🛠️ 執行アクション選択")
-        
         c1, c2, c3 = act_box.columns(3)
         with c1:
-            st.markdown("**【能動的営業】**<br><span style='color:#aaa;'>社長自ら商談に向かい、確実な現金を手に入れます。</span>", unsafe_allow_html=True)
+            st.markdown("**【能動的営業】**", unsafe_allow_html=True)
             if st.button("営業活動を行う (+￥100)"):
                 st.session_state.assets += 100
+                sync_to_cloud_market(stock_price)
                 st.rerun()
         with c2:
-            st.markdown("**【セキュリティ強化】**<br><span style='color:#aaa;'>費用を投じて社内サーバーを強固にし、M&A攻撃に備えます。</span>", unsafe_allow_html=True)
+            st.markdown("**【セキュリティ強化】**", unsafe_allow_html=True)
             if st.button("セキュリティを強化 (-￥1,000 / +100 DEF)"):
                 if st.session_state.assets >= 1000:
                     st.session_state.assets -= 1000
                     st.session_state.defense += 100
+                    sync_to_cloud_market(stock_price)
                     st.rerun()
                 else:
                     st.error("資金が不足しています。")
         with c3:
-            st.markdown("**【ターン経過処理】**<br><span style='color:#aaa;'>ブラウザの時間を進め、社員や子会社が稼いだ自動売上を今すぐ一括回収します。</span>", unsafe_allow_html=True)
-            if st.button("画面をリロード（売上回収）"):
+            st.markdown("**【最新データ更新】**", unsafe_allow_html=True)
+            if st.button("市場データをリロード（売上回収・ライバル情報同期）"):
                 st.rerun()
 
     # TAB 3: 子会社管理
-    with tabs[2]:
+    with tabs:
         st.subheader("🏢 子会社・グループ企業マネジメント")
-        st.write("子会社を設立し、投資を行うことで、グループ全体の生産力（1秒あたりの売上）に強力な乗算ボーナスがかかります。")
-        
         with st.expander("➕ 新しい子会社を設立する"):
-            sub_name = st.text_input("子会社の社名（例：サイバーコア・データサイエンス株式会社）")
+            sub_name = st.text_input("子会社の社名")
             sub_type = st.selectbox("事業セクター", ["IT・ソフトウェア", "不動産・インフラ", "バイオ・先端医療", "宇宙開発"])
-            capital = st.number_input("出資資本金（親会社の資産から差し引かれます / 最低 ￥5,000）", min_value=5000, max_value=max(5000, st.session_state.assets), step=5000)
-            
+            capital = st.number_input("出資資本金（最低 ￥5,000）", min_value=5000, max_value=max(5000, st.session_state.assets), step=5000)
             if st.button("出資登記して子会社にする"):
                 if st.session_state.assets < capital:
-                    st.error("親会社の資金（総資産）が出資額に満たないため設立できません。")
+                    st.error("親会社の資金が足りません。")
                 elif not sub_name.strip():
                     st.error("子会社の名前を入力してください。")
                 else:
                     st.session_state.assets -= capital
-                    new_sub = {
-                        "name": sub_name.strip(),
-                        "type": sub_type,
-                        "capital": capital,
-                        "level": 1,
-                        "invest_cost": int(capital * 0.8)
-                    }
-                    st.session_state.subsidiaries.append(new_sub)
-                    st.success(f"🎉 100%子会社『{sub_name}』を設立しました！グループシナジーが向上します。")
-                    st.rerun()
-
-        st.markdown("### 📊 保有子会社一覧")
-        if not st.session_state.subsidiaries:
-            st.info("現在保有している子会社はありません。上のパネルから出資・設立しましょう。")
-            
-        for idx, sub in enumerate(st.session_state.subsidiaries):
-            s_box = st.container(border=True)
-            s_box.markdown(f"**🏢 {sub['name']}** [{sub['type']}]")
-            s_box.write(f"・初期資本金: ￥{sub['capital']:,} | 企業規模ランク: **Lv.{sub['level']}**")
-            s_box.write(f"・現在のグループ貢献度: **全体生産力 +{sub['level'] * 10}% ボーナス**")
+                    st.session_state.subsidiaries.append({
+                        "name": sub_name.strip(), "type": sub_type, "capital": capital, "level": 1, "invest_cost": int(capital * 0.8)
+                    })
