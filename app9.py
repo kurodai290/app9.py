@@ -15,9 +15,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🏢 Corporate Wars Premium (Pure Python)")
+st.title("🏢 Corporate Wars Premium (Subsidiary Edition)")
 
-# 2. セッションデータの初期化（銀行機能用データを追加）
+# 2. セッションデータの初期化（子会社管理データを追加）
 if "company_id" not in st.session_state:
     st.session_state.company_id = ""
 if "company_name" not in st.session_state:
@@ -28,8 +28,10 @@ if "assets" not in st.session_state:
     st.session_state.assets = 2000
 if "defense" not in st.session_state:
     st.session_state.defense = 100
-if "debt" not in st.session_state:  # 借金（元金）
+if "debt" not in st.session_state:
     st.session_state.debt = 0
+if "subsidiaries" not in st.session_state:  # 子会社のリスト
+    st.session_state.subsidiaries = []
 if "staff" not in st.session_state:
     st.session_state.staff = {
         "intern": {"name": "インターン生", "cost": 500, "power": 5, "count": 0},
@@ -53,12 +55,22 @@ current_time = time.time()
 elapsed = int(current_time - st.session_state.last_tick)
 
 if elapsed > 0 and st.session_state.company_name:
+    # 基礎生産力の計算
     base_power = sum(s["count"] * s["power"] for s in st.session_state.staff.values())
-    multiplier = 1.0
+    
+    # 新商品開発の倍率
+    product_multiplier = 1.0
     for p in st.session_state.products.values():
         if p["done"]:
-            multiplier *= p["multi"]
-    st.session_state.assets += int(base_power * multiplier) * elapsed
+            product_multiplier *= p["multi"]
+            
+    # 子会社のシナジー倍率（1社あたりレベルに応じて+10%〜などのボーナス）
+    sub_multiplier = 1.0
+    for sub in st.session_state.subsidiaries:
+        sub_multiplier += (sub["level"] * 0.1) # レベル1ごとに+10%ボーナス
+        
+    final_power = int(base_power * product_multiplier * sub_multiplier)
+    st.session_state.assets += final_power * elapsed
     st.session_state.last_tick = current_time
 
 # --- 4. 未ログイン画面（会社設立） ---
@@ -93,30 +105,39 @@ if not st.session_state.company_name:
 
 # --- 5. メインゲーム画面 ---
 else:
+    # リアルタイムの生産力と株価の計算
     base_power = sum(s["count"] * s["power"] for s in st.session_state.staff.values())
-    multiplier = 1.0
+    product_multiplier = 1.0
     for p in st.session_state.products.values():
         if p["done"]:
-            multiplier *= p["multi"]
-    auto_power = int(base_power * multiplier)
+            product_multiplier *= p["multi"]
+            
+    sub_multiplier = 1.0
+    for sub in st.session_state.subsidiaries:
+        sub_multiplier += (sub["level"] * 0.1)
+        
+    auto_power = int(base_power * product_multiplier * sub_multiplier)
     
-    # 資産評価は借金を差し引いた「純資産」ベースに変更
-    net_assets = st.session_state.assets - st.session_state.debt
+    # 株価評価（子会社の価値（レベルの合計*5000）をプラス評価に加算）
+    sub_value_bonus = sum(sub["level"] * 5000 for sub in st.session_state.subsidiaries)
+    net_assets = st.session_state.assets - st.session_state.debt + sub_value_bonus
     stock_base = (net_assets * 0.05) + (sum(s["count"] for s in st.session_state.staff.values()) * 50) + (sum(1 for p in st.session_state.products.values() if p["done"]) * 1000)
     stock_price = max(10, int(stock_base * random.uniform(0.97, 1.03)))
     
     col1, col2, col3 = st.columns(3)
     col1.metric(label="自社総資産", value=f"￥{st.session_state.assets:,}")
     col2.metric(label="自社現在株価", value=f"￥{stock_price:,}")
-    col3.metric(label="社員数 / 生産力", value=f"{sum(s['count'] for s in st.session_state.staff.values())} 名 / {auto_power:,}秒")
+    col3.metric(label="グループ社員数 / 総生産力", value=f"{sum(s['count'] for s in st.session_state.staff.values())} 名 / {auto_power:,}秒")
     
-    # 銀行機能を追加した6つのタブメニュー
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["🏢 自社概念", "👥 社員雇用", "🧪 新商品開発", "🏦 銀行窓口", "📈 株価専用窓口", "⚔️ 世界の市場記録"])
+    # 子会社管理を加えた7つのタブメニュー
+    tabs = st.tabs(["🏢 自社概念", "🏢 子会社管理", "👥 社員雇用", "🧪 新商品開発", "🏦 銀行窓口", "📈 株価専用窓口", "⚔️ 世界の市場記録"])
     
-    with tab1:
+    # TAB 1: 自社概念
+    with tabs[0]:
         st.subheader("企業アイデンティティ")
-        st.write(f"**会社名:** {st.session_state.company_name}")
+        st.write(f"**会社名:** {st.session_state.company_name}（親会社）")
         st.write(f"**最高経営責任者 (CEO):** {st.session_state.ceo_name}")
+        st.write(f"**保有子会社数:** {len(st.session_state.subsidiaries)} 社")
         st.write(f"**セキュリティ防衛力:** {st.session_state.defense} DEF")
         st.write(f"**現在の借金残高:** ￥{st.session_state.debt:,}")
         
@@ -161,66 +182,49 @@ else:
                 except Exception:
                     st.error("同期失敗")
 
-    with tab2:
-        st.subheader("人材マネジメント")
-        for s_id, staff in st.session_state.staff.items():
-            box = st.container(border=True)
-            box.markdown(f"**{staff['name']}** (現在: {staff['count']}名) — コスト: ￥{staff['cost']:,} / 労働力: +{staff['power']}/秒")
-            if box.button(f"{staff['name']}を雇用", key=f"btn_buy_{s_id}"):
-                if st.session_state.assets >= staff["cost"]:
-                    st.session_state.assets -= staff["cost"]
-                    st.session_state.staff[s_id]["count"] += 1
-                    st.session_state.staff[s_id]["cost"] = int(staff["cost"] * 1.15)
-                    st.rerun()
+    # NEW TAB: 子会社管理
+    with tabs[1]:
+        st.subheader("🏢 子会社・グループ企業マネジメント")
+        st.write("子会社を設立し、投資を行うことで、グループ全体の生産力（1秒あたりの売上）に強力な乗算ボーナスがかかります。")
+        
+        # 子会社設立フォーム
+        with st.expander("➕ 新しい子会社を設立する"):
+            sub_name = st.text_input("子会社の社名（例：サイバーコア・データサイエンス株式会社）")
+            sub_type = st.selectbox("事業セクター", ["IT・ソフトウェア", "不動産・インフラ", "バイオ・先端医療", "宇宙開発"])
+            capital = st.number_input("出資資本金（親会社の資産から差し引かれます / 最低 ￥5,000）", min_value=5000, max_value=max(5000, st.session_state.assets), step=5000)
+            
+            if st.button("出資登記して子会社にする"):
+                if st.session_state.assets < capital:
+                    st.error("親会社の資金（総資産）が出資額に満たないため設立できません。")
+                elif not sub_name.strip():
+                    st.error("子会社の名前を入力してください。")
                 else:
-                    st.error("資金不足（銀行で融資を受けることを検討してください）")
+                    st.session_state.assets -= capital
+                    new_sub = {
+                        "name": sub_name.strip(),
+                        "type": sub_type,
+                        "capital": capital,
+                        "level": 1,
+                        "invest_cost": int(capital * 0.8)
+                    }
+                    st.session_state.subsidiaries.append(new_sub)
+                    st.success(f"🎉 100%子会社『{sub_name}』を設立しました！グループシナジーが向上します。")
+                    st.rerun()
 
-    with tab3:
-        st.subheader("プロダクト開発")
-        for p_id, prod in st.session_state.products.items():
-            box = st.container(border=True)
-            status = "【開発完了】" if prod["done"] else f"費用: ￥{prod['cost']:,}"
-            box.markdown(f"**{prod['name']}** ({status}) — ボーナス: 全体売上 {prod['multi']} 倍")
-            if not prod["done"]:
-                if box.button(f"{prod['name']}へ投資", key=f"btn_prod_{p_id}"):
-                    if st.session_state.assets >= prod["cost"]:
-                        st.session_state.assets -= prod["cost"]
-                        st.session_state.products[p_id]["done"] = True
-                        st.rerun()
-                    else:
-                        st.error("資金不足（銀行で融資を受けることを検討してください）")
-
-    # NEW PAGE: 銀行窓口
-    with tab4:
-        st.subheader("🏦 中央商業銀行 - 融資・返済窓口")
-        st.write("手元の資金をレバレッジをかけて増やし、企業成長を加速させましょう。")
-        
-        # ステータス表示
-        b_col1, b_col2 = st.columns(2)
-        b_col1.metric(label="現在の借金総額", value=f"￥{st.session_state.debt:,}")
-        b_col2.metric(label="融資可能残高", value=f"￥{max(0, 10000000 - st.session_state.debt):,}")
-        
-        st.markdown("### 1. 融資（お金を借りる）")
-        loan_amount = st.number_input("融資希望額（￥）", min_value=0, max_value=10000000, step=50000, value=100000)
-        if st.button("融資を実行する (利息5%が即座に上乗せされます)", type="secondary"):
-            if st.session_state.debt + loan_amount > 10000000:
-                st.error("融資限度額（10,000,000円）を超えています。")
-            elif loan_amount <= 0:
-                st.error("正しい金額を入力してください。")
-            else:
-                st.session_state.assets += loan_amount
-                st.session_state.debt += int(loan_amount * 1.05)  # 5%の利息を乗せて借金に加算
-                st.success(f"経常利益として ￥{loan_amount:,} の融資が実行されました。")
-                st.rerun()
-                
-        st.markdown("### 2. 返済（お金を返す）")
-        repay_amount = st.number_input("返済額（￥）", min_value=0, max_value=max(1, st.session_state.debt), step=50000, value=min(100000, st.session_state.debt))
-        if st.button("借金を返済する"):
-            if repay_amount > st.session_state.assets:
-                st.error("手元資金（総資産）が足りません。")
-            elif repay_amount > st.session_state.debt:
-                st.error("借金残高以上の金額は返済できません。")
-            elif repay_amount <= 0:
-                st.error("正しい金額を入力してください。")
-            else:
-                st.session_state.assets -= repay_amount
+        st.markdown("### 📊 保有子会社一覧")
+        if not st.session_state.subsidiaries:
+            st.info("現在保有している子会社はありません。上のパネルから出資・設立しましょう。")
+            
+        for idx, sub in enumerate(st.session_state.subsidiaries):
+            s_box = st.container(border=True)
+            s_box.markdown(f"**🏢 {sub['name']}** [{sub['type']}]")
+            s_box.write(f"・初期資本金: ￥{sub['capital']:,} | 企業規模ランク: **Lv.{sub['level']}**")
+            s_box.write(f"・現在のグループ貢献度: **全体生産力 +{sub['level'] * 10}% ボーナス**")
+            
+            if s_box.button(f"事業投資を行って子会社を拡大する (費用: ￥{sub['invest_cost']:,})", key=f"sub_inv_{idx}"):
+                if st.session_state.assets < sub["invest_cost"]:
+                    st.error("親会社の資金が不足しています。")
+                else:
+                    st.session_state.assets -= sub["invest_cost"]
+                    st.session_state.subsidiaries[idx]["level"] += 1
+                    st.session_state.subsidiaries[idx]["invest_cost"] = int(sub["invest_cost"] * 1.4)
