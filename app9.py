@@ -164,15 +164,18 @@ else:
     col2.metric(label="自社現在株価", value=f"￥{stock_price:,}")
     col3.metric(label="グループ社員数 / 総生産力", value=f"{sum(s['count'] for s in st.session_state.staff.values())} 名 / {auto_power:,}秒")
     
-    # 8つの独立したタブメニューを生成
-    t1, t2, t3, t4, t5, t6, t7, t8 = st.tabs([
-        "🏢 自社概念", "💼 営業アクション", "🏢 子会社管理", 
-        "👥 社員雇用", "🧪 新商品開発", "🏦 銀行窓口", 
-        "📈 株価専用窓口", "⚔️ 世界の市場記録"
-    ])
+    st.markdown("---")
     
-    # ★重要修正ポイント：すべての「with tx:」を完全に左揃えにし、ネスト（入れ子）を完全解消
-    with t1:
+    # ★バグの根本原因を完全排除：st.tabsを使わず、確実に表示されるセレクトボックス方式を採用！
+    page_selection = st.selectbox(
+        "📂 移動する経営部署（ページ）を選択してください", 
+        ["🏢 自社概念（マイページ）", "💼 営業アクション", "🏢 子会社管理", "👥 社員雇用", "🧪 新商品開発", "🏦 銀行窓口", "📈 株価専用窓口", "⚔️ 世界の市場記録"]
+    )
+    
+    st.markdown("---")
+
+    # 1. 自社概念
+    if page_selection == "🏢 自社概念（マイページ）":
         st.subheader("企業アイデンティティ")
         st.write(f"**会社名:** {st.session_state.company_name}（親会社）")
         st.write(f"**最高経営責任者 (CEO):** {st.session_state.ceo_name}")
@@ -182,7 +185,8 @@ else:
         st.write(f"**現在の借金残高:** ￥{st.session_state.debt:,}")
         st.success("🟢 あなたの会社はクラウド共有サーバーへリアルタイム同期されています。コードのやり取りは不要です。")
 
-    with t2:
+    # 2. 営業アクション
+    elif page_selection == "💼 営業アクション":
         st.subheader("💼 コアビジネス・経営コマンド")
         st.write("時間を進めて売上を回収したり、会社の基礎防衛力を固めるページです。")
         act_box = st.container(border=True)
@@ -208,7 +212,8 @@ else:
             if st.button("市場データをリロード（売上回収・ライバル情報同期）"):
                 st.rerun()
 
-    with t3:
+    # 3. 子会社管理
+    elif page_selection == "🏢 子会社管理":
         st.subheader("🏢 子会社・グループ企業マネジメント")
         st.write("子会社を設立し、投資を行うことで、グループ全体の生産力（1秒あたりの売上）に強力な乗算ボーナスがかかります。")
         
@@ -230,7 +235,3 @@ else:
                     st.rerun()
 
         st.markdown("### 📊 保有子会社一覧")
-        if not st.session_state.subsidiaries:
-            st.info("子会社はありません。")
-        for idx, sub in enumerate(st.session_state.subsidiaries):
-            s_box = st.container(border=True)
