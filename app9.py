@@ -17,7 +17,7 @@ st.markdown("""
 
 st.title("🏢 Corporate Wars Premium (Subsidiary Edition)")
 
-# 2. セッションデータの初期化（子会社管理データを追加）
+# 2. セッションデータの初期化
 if "company_id" not in st.session_state:
     st.session_state.company_id = ""
 if "company_name" not in st.session_state:
@@ -30,7 +30,7 @@ if "defense" not in st.session_state:
     st.session_state.defense = 100
 if "debt" not in st.session_state:
     st.session_state.debt = 0
-if "subsidiaries" not in st.session_state:  # 子会社のリスト
+if "subsidiaries" not in st.session_state:
     st.session_state.subsidiaries = []
 if "staff" not in st.session_state:
     st.session_state.staff = {
@@ -55,19 +55,15 @@ current_time = time.time()
 elapsed = int(current_time - st.session_state.last_tick)
 
 if elapsed > 0 and st.session_state.company_name:
-    # 基礎生産力の計算
     base_power = sum(s["count"] * s["power"] for s in st.session_state.staff.values())
-    
-    # 新商品開発の倍率
     product_multiplier = 1.0
     for p in st.session_state.products.values():
         if p["done"]:
             product_multiplier *= p["multi"]
             
-    # 子会社のシナジー倍率（1社あたりレベルに応じて+10%〜などのボーナス）
     sub_multiplier = 1.0
     for sub in st.session_state.subsidiaries:
-        sub_multiplier += (sub["level"] * 0.1) # レベル1ごとに+10%ボーナス
+        sub_multiplier += (sub["level"] * 0.1)
         
     final_power = int(base_power * product_multiplier * sub_multiplier)
     st.session_state.assets += final_power * elapsed
@@ -105,7 +101,6 @@ if not st.session_state.company_name:
 
 # --- 5. メインゲーム画面 ---
 else:
-    # リアルタイムの生産力と株価の計算
     base_power = sum(s["count"] * s["power"] for s in st.session_state.staff.values())
     product_multiplier = 1.0
     for p in st.session_state.products.values():
@@ -118,7 +113,6 @@ else:
         
     auto_power = int(base_power * product_multiplier * sub_multiplier)
     
-    # 株価評価（子会社の価値（レベルの合計*5000）をプラス評価に加算）
     sub_value_bonus = sum(sub["level"] * 5000 for sub in st.session_state.subsidiaries)
     net_assets = st.session_state.assets - st.session_state.debt + sub_value_bonus
     stock_base = (net_assets * 0.05) + (sum(s["count"] for s in st.session_state.staff.values()) * 50) + (sum(1 for p in st.session_state.products.values() if p["done"]) * 1000)
@@ -129,8 +123,8 @@ else:
     col2.metric(label="自社現在株価", value=f"￥{stock_price:,}")
     col3.metric(label="グループ社員数 / 総生産力", value=f"{sum(s['count'] for s in st.session_state.staff.values())} 名 / {auto_power:,}秒")
     
-    # 子会社管理を加えた7つのタブメニュー
-    tabs = st.tabs(["🏢 自社概念", "🏢 子会社管理", "👥 社員雇用", "🧪 新商品開発", "🏦 銀行窓口", "📈 株価専用窓口", "⚔️ 世界の市場記録"])
+    # 営業アクションを独立させた「8つのタブメニュー」
+    tabs = st.tabs(["🏢 自社概念", "💼 営業アクション", "🏢 子会社管理", "👥 社員雇用", "🧪 新商品開発", "🏦 銀行窓口", "📈 株価専用窓口", "⚔️ 世界の市場記録"])
     
     # TAB 1: 自社概念
     with tabs[0]:
@@ -141,21 +135,6 @@ else:
         st.write(f"**セキュリティ防衛力:** {st.session_state.defense} DEF")
         st.write(f"**現在の借金残高:** ￥{st.session_state.debt:,}")
         
-        st.markdown("### 経営アクション")
-        c1, c2, c3 = st.columns(3)
-        if c1.button("社長自ら営業活動を行う (+￥100)"):
-            st.session_state.assets += 100
-            st.rerun()
-        if c2.button("セキュリティを強化 (-￥1,000 / +100 DEF)"):
-            if st.session_state.assets >= 1000:
-                st.session_state.assets -= 1000
-                st.session_state.defense += 100
-                st.rerun()
-            else:
-                st.error("資金が不足しています。")
-        if c3.button("画面をリロード（時間を進めて売上回収）"):
-            st.rerun()
-            
         st.markdown("---")
         st.subheader("🤝 マルチプレイ同期（コード共有）")
         my_data = {
@@ -182,12 +161,39 @@ else:
                 except Exception:
                     st.error("同期失敗")
 
-    # NEW TAB: 子会社管理
+    # ★ NEW TAB 2: 営業アクション（完全独立ページ）
     with tabs[1]:
+        st.subheader("💼 コアビジネス・経営コマンド")
+        st.write("社長としての直接的な経営介入や、時間を進めて社員の売上を回収するページです。")
+        
+        act_box = st.container(border=True)
+        act_box.markdown("### 🛠️ 執行アクション選択")
+        
+        c1, c2, c3 = act_box.columns(3)
+        with c1:
+            st.markdown("**【能動的営業】**<br><span style='color:#aaa;'>社長自ら商談に向かい、確実な現金を手に入れます。</span>", unsafe_allow_html=True)
+            if st.button("営業活動を行う (+￥100)"):
+                st.session_state.assets += 100
+                st.rerun()
+        with c2:
+            st.markdown("**【セキュリティ強化】**<br><span style='color:#aaa;'>費用を投じて社内サーバーを強固にし、M&A攻撃に備えます。</span>", unsafe_allow_html=True)
+            if st.button("セキュリティを強化 (-￥1,000 / +100 DEF)"):
+                if st.session_state.assets >= 1000:
+                    st.session_state.assets -= 1000
+                    st.session_state.defense += 100
+                    st.rerun()
+                else:
+                    st.error("資金が不足しています。")
+        with c3:
+            st.markdown("**【ターン経過処理】**<br><span style='color:#aaa;'>ブラウザの時間を進め、社員や子会社が稼いだ自動売上を今すぐ一括回収します。</span>", unsafe_allow_html=True)
+            if st.button("画面をリロード（売上回収）"):
+                st.rerun()
+
+    # TAB 3: 子会社管理
+    with tabs[2]:
         st.subheader("🏢 子会社・グループ企業マネジメント")
         st.write("子会社を設立し、投資を行うことで、グループ全体の生産力（1秒あたりの売上）に強力な乗算ボーナスがかかります。")
         
-        # 子会社設立フォーム
         with st.expander("➕ 新しい子会社を設立する"):
             sub_name = st.text_input("子会社の社名（例：サイバーコア・データサイエンス株式会社）")
             sub_type = st.selectbox("事業セクター", ["IT・ソフトウェア", "不動産・インフラ", "バイオ・先端医療", "宇宙開発"])
@@ -220,11 +226,3 @@ else:
             s_box.markdown(f"**🏢 {sub['name']}** [{sub['type']}]")
             s_box.write(f"・初期資本金: ￥{sub['capital']:,} | 企業規模ランク: **Lv.{sub['level']}**")
             s_box.write(f"・現在のグループ貢献度: **全体生産力 +{sub['level'] * 10}% ボーナス**")
-            
-            if s_box.button(f"事業投資を行って子会社を拡大する (費用: ￥{sub['invest_cost']:,})", key=f"sub_inv_{idx}"):
-                if st.session_state.assets < sub["invest_cost"]:
-                    st.error("親会社の資金が不足しています。")
-                else:
-                    st.session_state.assets -= sub["invest_cost"]
-                    st.session_state.subsidiaries[idx]["level"] += 1
-                    st.session_state.subsidiaries[idx]["invest_cost"] = int(sub["invest_cost"] * 1.4)
