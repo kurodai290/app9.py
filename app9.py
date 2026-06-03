@@ -16,17 +16,15 @@ st.markdown("""
 st.title("🏢 Corporate Wars Premium (Fully Online Cloud Edition)")
 
 # =================================================================
-# 【最重要】全員で共有する「クラウド仮想市場データベース」の構築
+# 全員で共有する「クラウド仮想市場データベース」の構築
 # =================================================================
 if "GLOBAL_MARKET_DATABASE" not in st.session_state.__class__.__dict__:
-    # 全セッション（全プレイヤー）で共有されるメモリ空間を物理的に確保
     st.session_state.__class__.GLOBAL_MARKET_DATABASE = {}
 
-# ショートカット変数として定義
 GLOBAL_MARKET = st.session_state.__class__.GLOBAL_MARKET_DATABASE
 
 
-# 2. 個人セッションデータ（あなたのブラウザ用）の初期化
+# 2. 個人セッションデータの初期化
 if "company_id" not in st.session_state:
     st.session_state.company_id = ""
 if "company_name" not in st.session_state:
@@ -78,14 +76,10 @@ if elapsed > 0 and st.session_state.company_name:
     st.session_state.last_tick = current_time
 
 
-# =================================================================
 # クラウドデータベースへのデータ同期関数
-# =================================================================
-def sync_to_cloud_market(stock_price_current):
+def sample_sync_to_cloud(stock_price_current):
     if not st.session_state.company_name:
         return
-    
-    # あなたの会社の最新状態をクラウド共有DBに強制上書き保存
     GLOBAL_MARKET[st.session_state.company_id] = {
         "name": st.session_state.company_name,
         "ceo": st.session_state.ceo_name,
@@ -95,12 +89,10 @@ def sync_to_cloud_market(stock_price_current):
         "last_update": time.time()
     }
 
-def sync_from_cloud_market():
-    # 自分がクラウド側で誰かに買収（DEFが0以下に）されていないかチェック
+def sample_sync_from_cloud():
     if st.session_state.company_id in GLOBAL_MARKET:
         cloud_data = GLOBAL_MARKET[st.session_state.company_id]
         if cloud_data["defense"] <= 0:
-            # 買収された通知を行い、会社データを初期化
             st.error(f"🚨 【M&A警告】あなたの会社は競合他社によって完全に買収合併されました！資産がリセットされます。")
             st.session_state.company_name = ""
             st.session_state.ceo_name = ""
@@ -114,7 +106,6 @@ def sync_from_cloud_market():
                 del GLOBAL_MARKET[st.session_state.company_id]
             st.rerun()
         else:
-            # 相手から受けた防衛力（DEF）のダメージを自分の画面に同期
             st.session_state.defense = cloud_data["defense"]
 
 
@@ -133,7 +124,6 @@ if not st.session_state.company_name:
             st.session_state.ceo_name = input_ceo.strip()
             st.session_state.last_tick = time.time()
             
-            # 設立した瞬間に市場へ自動エントリー
             GLOBAL_MARKET[st.session_state.company_id] = {
                 "name": st.session_state.company_name,
                 "ceo": st.session_state.ceo_name,
@@ -149,7 +139,6 @@ if not st.session_state.company_name:
 
 # --- 5. メインゲーム画面 ---
 else:
-    # リアルタイムの生産力と株価の計算
     base_power = sum(s["count"] * s["power"] for s in st.session_state.staff.values())
     product_multiplier = 1.0
     for p in st.session_state.products.values():
@@ -167,21 +156,19 @@ else:
     stock_base = (net_assets * 0.05) + (sum(s["count"] for s in st.session_state.staff.values()) * 50) + (sum(1 for p in st.session_state.products.values() if p["done"]) * 1000)
     stock_price = max(10, int(stock_base * random.uniform(0.97, 1.03)))
     
-    # データの相互同期を走らせる
-    sync_from_cloud_market()
-    sync_to_cloud_market(stock_price)
+    sample_sync_from_cloud()
+    sample_sync_to_cloud(stock_price)
     
-    # 画面上部ステータス
     col1, col2, col3 = st.columns(3)
     col1.metric(label="自社総資産", value=f"￥{st.session_state.assets:,}")
     col2.metric(label="自社現在株価", value=f"￥{stock_price:,}")
     col3.metric(label="グループ社員数 / 総生産力", value=f"{sum(s['count'] for s in st.session_state.staff.values())} 名 / {auto_power:,}秒")
     
-    # タブメニュー
-    tabs = st.tabs(["🏢 自社概念", "💼 営業アクション", "🏢 子会社管理", "👥 社員雇用", "🧪 新商品開発", "🏦 銀行窓口", "📈 株価専用窓口", "⚔️ 世界の市場記録"])
+    # ★修正ポイント：大元の変数を格納し、個別名称で割り振り
+    t1, t2, t3, t4, t5, t6, t7, t8 = st.tabs(["🏢 自社概念", "💼 営業アクション", "🏢 子会社管理", "👥 社員雇用", "🧪 新商品開発", "🏦 銀行窓口", "📈 株価専用窓口", "⚔️ 世界の市場記録"])
     
     # TAB 1: 自社概念
-    with tabs:
+    with t1:
         st.subheader("企業アイデンティティ")
         st.write(f"**会社名:** {st.session_state.company_name}（親会社）")
         st.write(f"**最高経営責任者 (CEO):** {st.session_state.ceo_name}")
@@ -192,7 +179,7 @@ else:
         st.success("🟢 あなたの会社はクラウド共有サーバーへリアルタイム同期されています。コードのやり取りは不要です。")
 
     # TAB 2: 営業アクション
-    with tabs:
+    with t2:
         st.subheader("💼 コアビジネス・経営コマンド")
         st.write("時間を進めて売上を回収したり、会社の基礎防衛力を固めるページです。")
         act_box = st.container(border=True)
@@ -201,7 +188,7 @@ else:
             st.markdown("**【能動的営業】**", unsafe_allow_html=True)
             if st.button("営業活動を行う (+￥100)"):
                 st.session_state.assets += 100
-                sync_to_cloud_market(stock_price)
+                sample_sync_to_cloud(stock_price)
                 st.rerun()
         with c2:
             st.markdown("**【セキュリティ強化】**", unsafe_allow_html=True)
@@ -209,7 +196,7 @@ else:
                 if st.session_state.assets >= 1000:
                     st.session_state.assets -= 1000
                     st.session_state.defense += 100
-                    sync_to_cloud_market(stock_price)
+                    sample_sync_to_cloud(stock_price)
                     st.rerun()
                 else:
                     st.error("資金が不足しています。")
@@ -219,8 +206,10 @@ else:
                 st.rerun()
 
     # TAB 3: 子会社管理
-    with tabs:
+    with t3:
         st.subheader("🏢 子会社・グループ企業マネジメント")
+        st.write("子会社を設立し、投資を行うことで、グループ全体の生産力（1秒あたりの売上）に強力な乗算ボーナスがかかります。")
+        
         with st.expander("➕ 新しい子会社を設立する"):
             sub_name = st.text_input("子会社の社名")
             sub_type = st.selectbox("事業セクター", ["IT・ソフトウェア", "不動産・インフラ", "バイオ・先端医療", "宇宙開発"])
@@ -235,3 +224,11 @@ else:
                     st.session_state.subsidiaries.append({
                         "name": sub_name.strip(), "type": sub_type, "capital": capital, "level": 1, "invest_cost": int(capital * 0.8)
                     })
+                    sample_sync_to_cloud(stock_price)
+                    st.rerun()
+
+        st.markdown("### 📊 保有子会社一覧")
+        if not st.session_state.subsidiaries:
+            st.info("子会社はありません。")
+        for idx, sub in enumerate(st.session_state.subsidiaries):
+            s_box = st.container(border=True)
